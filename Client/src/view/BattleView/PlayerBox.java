@@ -15,30 +15,23 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import models.card.CardType;
-import models.comperessedData.CompressedCard;
 import models.comperessedData.CompressedGame;
 import models.comperessedData.CompressedPlayer;
-import models.comperessedData.CompressedTroop;
 import models.gui.*;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.HashMap;
 
 import static java.lang.Math.pow;
 import static view.BattleView.Constants.SCALE;
 import static view.BattleView.Constants.SCREEN_WIDTH;
 
 public class PlayerBox implements PropertyChangeListener {
-    private final Image comboNotSelectedImage = new Image(new FileInputStream("Client/resources/ui/ranked_chevron_empty@2x.png"));
-    private final Image comboSelectedImage = new Image(new FileInputStream("Client/resources/ui/ranked_chevron_full@2x.png"));
-    private final Image spellSelectedImage = new Image(new FileInputStream("Client/resources/ui/quests_glow@2x.png"));
-    private final Image spellNotSelectedImage = new Image(new FileInputStream("Client/resources/ui/quests@2x.png"));
     private final Image manaImage = new Image(new FileInputStream("Client/resources/ui/icon_mana@2x.png"));
     private final Image inActiveManaImage = new Image(new FileInputStream("Client/resources/ui/icon_mana_inactive@2x.png"));
-    private final Image player1Profile = new Image(new FileInputStream("Client/resources/photo/general_portrait_image_hex_f5@2x.png"));
-    private final Image player2Profile = new Image(new FileInputStream("Client/resources/photo/general_portrait_image_hex_f6-third@2x.png"));
     private final Image chatImage = new Image(new FileInputStream("Client/resources/ui/chat_bubble.png"));
     private final double CHAT_BUBBLE_SIZE = 150 * SCALE;
     private final NormalField chatField = new NormalField("Type message and send");
@@ -52,17 +45,14 @@ public class PlayerBox implements PropertyChangeListener {
     private ImageView player2Image;
     private ColorAdjust player1ImageEffect;
     private ColorAdjust player2ImageEffect;
-    private ImageView comboButton;
-    private ImageView spellButton;
-    private DefaultLabel player1Name;
-    private DefaultLabel player2Name;
 
     PlayerBox(BattleScene battleScene, CompressedGame game) throws Exception {
         this.battleScene = battleScene;
         this.player1 = game.getPlayerOne();
         this.player2 = game.getPlayerTwo();
+
         group = new Group();
-        addPhotos();
+        addHeroPortraits();
         if (game.getTurnNumber() % 2 == 1) {
             player1ImageEffect.setBrightness(0);
             player2ImageEffect.setBrightness(-0.6);
@@ -75,14 +65,22 @@ public class PlayerBox implements PropertyChangeListener {
         updateMP(3);
 
         if (battleScene.getMyPlayerNumber() != -1) {
-            addComboButton();
-            addSpellButton();
             addChatField();
             makeMessageShows();
-            addUsableItem();
         }
 
         game.addPropertyChangeListener(this);
+    }
+
+    private HashMap<String, String> MapGeneralToPortrait() {
+        // Note that this is a quick hack; a better solution is to have "portraitId" defined in the Hero's json file.
+        HashMap<String, String> nameToPortrait = new HashMap<>();
+        nameToPortrait.put("Reva Eventide", "Client/resources/photo/general_portrait_image_hex_f2-alt@2x.png");
+        nameToPortrait.put("Vaath The Immortal", "Client/resources/photo/general_portrait_image_hex_f5@2x.png");
+        nameToPortrait.put("Argeon Highmayne", "Client/resources/photo/general_portrait_image_hex_f1@2x.png");
+        nameToPortrait.put("Faie Bloodwing", "Client/resources/photo/general_portrait_image_hex_f6@2x.png");
+
+        return nameToPortrait;
     }
 
     private void addChatField() {
@@ -113,7 +111,14 @@ public class PlayerBox implements PropertyChangeListener {
         player2MessageShow = new MessageShow(player2Image);
     }
 
-    private void addPhotos() {
+    private void addHeroPortraits() throws FileNotFoundException {
+
+        String player1HeroName = player1.getHero().getCard().getName();
+        Image player1Profile = new Image(new FileInputStream(MapGeneralToPortrait().getOrDefault(player1HeroName, "Client/resources/photo/general_portrait_image_hex_rook@2x.png")));
+
+        String player2HeroName = player2.getHero().getCard().getName();
+        Image player2Profile = new Image(new FileInputStream(MapGeneralToPortrait().getOrDefault(player2HeroName, "Client/resources/photo/general_portrait_image_hex_calibero@2x.png")));
+
         player1Image = ImageLoader.makeImageView(player1Profile,
                 player1Profile.getWidth() * SCALE * 0.3,
                 player1Profile.getHeight() * SCALE * 0.3
@@ -126,172 +131,19 @@ public class PlayerBox implements PropertyChangeListener {
         player1Image.setY(-Constants.SCREEN_HEIGHT * 0.02);
         player2Image.setX(Constants.SCREEN_WIDTH * 0.85);
         player2Image.setY(-Constants.SCREEN_HEIGHT * 0.02);
-        player1Name = new DefaultLabel("", Constants.NAME_FONT, Color.WHITE, 290 * SCALE, 75 * SCALE);
+        DefaultLabel player1Name = new DefaultLabel("", Constants.NAME_FONT, Color.WHITE, 290 * SCALE, 75 * SCALE);
         player1Name.setBackground(new Background(new BackgroundFill(Color.rgb(155, 82, 100, 0.7), new CornerRadii(3), Insets.EMPTY)));
         player1Name.setPadding(Constants.NAME_PADDING);
-        player2Name = new DefaultLabel("", Constants.NAME_FONT, Color.WHITE, SCREEN_WIDTH - 600 * SCALE, 75 * SCALE);
+        DefaultLabel player2Name = new DefaultLabel("", Constants.NAME_FONT, Color.WHITE, SCREEN_WIDTH - 600 * SCALE, 75 * SCALE);
         player2Name.setBackground(new Background(new BackgroundFill(Color.rgb(155, 82, 100, 0.7), new CornerRadii(3), Insets.EMPTY)));
         player2Name.setPadding(Constants.NAME_PADDING);
-        player1Name.setText(player1.getUserName() + " Flags:" + player1.getNumberOfCollectedFlags());
-        player2Name.setText(player2.getUserName() + " Flags:" + player2.getNumberOfCollectedFlags());
+        player1Name.setText(player1.getUserName());
+        player2Name.setText(player2.getUserName());
         player1ImageEffect = new ColorAdjust();
         player2ImageEffect = new ColorAdjust();
         player1Image.setEffect(player1ImageEffect);
         player2Image.setEffect(player2ImageEffect);
         group.getChildren().addAll(player1Image, player2Image, player1Name, player2Name);
-    }
-
-    private void addUsableItem() {
-        CompressedCard card = null;
-        if (battleScene.getMyPlayerNumber() == 1)
-            card = player1.getUsableItem();
-        if (battleScene.getMyPlayerNumber() == 2)
-            card = player2.getUsableItem();
-        if (card == null)
-            return;
-        StackPane stackPane = new StackPane();
-        CardAnimation animation = new CardAnimation(stackPane, card, 0, 0);
-        stackPane.setLayoutY(SCALE * (390));
-        if (battleScene.getMyPlayerNumber() == 1)
-            stackPane.setLayoutX(SCALE * (130));
-        else if (battleScene.getMyPlayerNumber() == 2)
-            stackPane.setLayoutX(Constants.SCREEN_WIDTH - SCALE * (130) - animation.getImageView().getFitWidth());
-        stackPane.setOnMouseEntered(mouseEvent -> {
-            if (battleScene.isMyTurn()) {
-                animation.inActive();
-            }
-        });
-        stackPane.setOnMouseExited(mouseEvent -> animation.pause());
-        group.getChildren().add(stackPane);
-    }
-
-    void refreshComboAndSpell() {
-        if (battleScene.getMyPlayerNumber() == -1)
-            return;
-        try {
-            comboButton.setImage(comboNotSelectedImage);
-            spellButton.setImage(spellNotSelectedImage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void addSpellButton() throws Exception {
-        spellButton = new ImageView(new Image(new FileInputStream("Client/resources/ui/quests@2x.png")));
-        spellButton.setFitWidth(spellButton.getImage().getWidth() * SCALE * 0.75);
-        spellButton.setFitHeight(spellButton.getImage().getHeight() * SCALE * 0.75);
-        spellButton.setY(SCALE * (325));
-        if (battleScene.getMyPlayerNumber() == 1)
-            spellButton.setX(SCALE * (180));
-        else
-            spellButton.setX(Constants.SCREEN_WIDTH - SCALE * (180) - spellButton.getFitWidth());
-        group.getChildren().add(spellButton);
-        spellButton.setOnMouseEntered(mouseEvent -> hoverSpellButton());
-        spellButton.setOnMouseExited(mouseEvent -> exitSpellButton());
-        spellButton.setOnMouseClicked(mouseEvent -> clickSpellButton());
-    }
-
-    private void exitSpellButton() {
-        try {
-            if (battleScene.getMapBox().isSpellSelected())
-                spellButton.setImage(spellSelectedImage);
-            else
-                spellButton.setImage(spellNotSelectedImage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void hoverSpellButton() {
-        try {
-            CompressedTroop troop = battleScene.getMapBox().getSelectedTroop();
-            if (battleScene.isMyTurn() && troop != null && troop.getCard().getType() == CardType.HERO
-                    && troop.getCard().getSpell() != null &&
-                    troop.getCard().getSpell().getCoolDown() + troop.getCard().getSpell().getLastTurnUsed() <=
-                            battleScene.getGame().getTurnNumber())
-                spellButton.setImage(spellSelectedImage);
-            else
-                spellButton.setImage(spellNotSelectedImage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void clickSpellButton() {
-        try {
-            CompressedTroop troop = battleScene.getMapBox().getSelectedTroop();
-            if (battleScene.isMyTurn() && troop != null && troop.getCard().getType() == CardType.HERO
-                    && troop.getCard().getSpell() != null &&
-                    troop.getCard().getSpell().getCoolDown() + troop.getCard().getSpell().getLastTurnUsed() <=
-                            battleScene.getGame().getTurnNumber()) {
-                if (battleScene.getMapBox().isSpellSelected()) {
-                    battleScene.getMapBox().resetSelection();
-                    spellButton.setImage(spellNotSelectedImage);
-                } else {
-                    battleScene.getMapBox().setSpellSelected();
-                    battleScene.getMapBox().updateMapColors();
-                    spellButton.setImage(spellSelectedImage);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void addComboButton() {
-        comboButton = new ImageView(comboNotSelectedImage);
-        comboButton.setFitWidth(comboButton.getImage().getWidth() * SCALE * 0.3);
-        comboButton.setFitHeight(comboButton.getImage().getHeight() * SCALE * 0.3);
-        comboButton.setY(SCALE * (260));
-        if (battleScene.getMyPlayerNumber() == 1)
-            comboButton.setX(SCALE * (230));
-        else
-            comboButton.setX(Constants.SCREEN_WIDTH - SCALE * (230) - comboButton.getFitWidth());
-        group.getChildren().add(comboButton);
-        comboButton.setOnMouseEntered(mouseEvent -> hoverComboButton());
-        comboButton.setOnMouseExited(mouseEvent -> exitComboButton());
-        comboButton.setOnMouseClicked(mouseEvent -> clickComboButton());
-    }
-
-    private void exitComboButton() {
-        try {
-            if (battleScene.getMapBox().isComboSelected())
-                comboButton.setImage(comboSelectedImage);
-            else
-                comboButton.setImage(comboNotSelectedImage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void hoverComboButton() {
-        try {
-            if (battleScene.isMyTurn() && battleScene.getMapBox().getSelectedTroop() != null &&
-                    battleScene.getMapBox().getSelectedTroop().getCard().isHasCombo())
-                comboButton.setImage(comboSelectedImage);
-            else
-                comboButton.setImage(comboNotSelectedImage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void clickComboButton() {
-        try {
-            if (battleScene.isMyTurn() && battleScene.getMapBox().getSelectedTroop() != null &&
-                    battleScene.getMapBox().getSelectedTroop().getCard().isHasCombo()) {
-                if (battleScene.getMapBox().isComboSelected()) {
-                    battleScene.getMapBox().resetSelection();
-                    comboButton.setImage(comboNotSelectedImage);
-                } else {
-                    battleScene.getMapBox().setComboSelected();
-                    battleScene.getMapBox().updateMapColors();
-                    comboButton.setImage(comboSelectedImage);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private void updateMP(int maxMP) {
@@ -380,12 +232,6 @@ public class PlayerBox implements PropertyChangeListener {
                 SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.your_turn);
             });
         }
-        if (evt.getPropertyName().equals("flag")) {
-            Platform.runLater(() -> {
-                player1Name.setText(player1.getUserName() + " Flags:" + player1.getNumberOfCollectedFlags());
-                player2Name.setText(player2.getUserName() + " Flags:" + player2.getNumberOfCollectedFlags());
-            });
-        }
     }
 
     void showMessage(CompressedPlayer player, String text) {
@@ -399,15 +245,13 @@ public class PlayerBox implements PropertyChangeListener {
     class MessageShow extends AnimationTimer {
         private final long showTime = (long) (4 * pow(10, 9));
         private final DefaultText text = new DefaultText("", CHAT_BUBBLE_SIZE * 0.9, UIConstants.DEFAULT_FONT, Color.BLACK);
-        private final ImageView chatView = ImageLoader.makeImageView(chatImage, CHAT_BUBBLE_SIZE, CHAT_BUBBLE_SIZE);
         private final StackPane stackPane;
-        private final double x;
-        private final double y;
         private long initialTime = -1;
 
         MessageShow(ImageView playerImage) {
-            x = playerImage.getX() + (playerImage.getFitWidth() - CHAT_BUBBLE_SIZE) / 2;
-            y = playerImage.getY() + playerImage.getFitHeight();
+            double x = playerImage.getX() + (playerImage.getFitWidth() - CHAT_BUBBLE_SIZE) / 2;
+            double y = playerImage.getY() + playerImage.getFitHeight();
+            ImageView chatView = ImageLoader.makeImageView(chatImage, CHAT_BUBBLE_SIZE, CHAT_BUBBLE_SIZE);
             stackPane = new StackPane(chatView, text);
             stackPane.relocate(x, y);
         }

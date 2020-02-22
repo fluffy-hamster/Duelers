@@ -11,7 +11,7 @@ import models.card.spell.AvailabilityType;
 import models.comperessedData.CompressedGame;
 import models.comperessedData.CompressedPlayer;
 import models.game.GameActions;
-import models.game.map.Position;
+import models.game.map.Cell;
 import view.Show;
 
 import java.io.File;
@@ -25,7 +25,7 @@ import static controller.SoundEffectPlayer.SoundName.victory_match;
 
 public class BattleScene extends Show {
     private static final String WINNER_SPRITE_NAME = "fx_winner";
-    private static Media backgroundMusic = new Media(
+    private static final Media backgroundMusic = new Media(
             new File("Client/resources/music/music_battlemap_vetruv.m4a").toURI().toString()
     );
     private static final Map<SpellType, String> spellSpriteNames = new HashMap();
@@ -44,7 +44,6 @@ public class BattleScene extends Show {
         spellSpriteNames.put(SpellType.DEATH, "fx_f4_deathfire_crescendo");
         spellSpriteNames.put(SpellType.DEFEND, "fx_f2_bbs_spellsword");
         spellSpriteNames.put(SpellType.CONTINUOUS, "fx_f3_sandportal");
-        spellSpriteNames.put(SpellType.SPECIAL_POWER, "fx_f1_lasting_judgment");
         spellSpriteNames.put(SpellType.DEFAULT, "fx_f2_eightgates_teallotus");
     }
 
@@ -61,9 +60,9 @@ public class BattleScene extends Show {
             oppPlayer = game.getPlayerOne();
         }
 
-        handBox = new HandBox(this, myPlayer, Constants.HAND_X, Constants.HAND_Y);
+        handBox = new HandBox(this, myPlayer);
         playerBox = new PlayerBox(this, game);
-        mapBox = new MapBox(this, game.getGameMap(), Constants.MAP_X, Constants.MAP_Y);
+        mapBox = new MapBox(this, game.getGameMap());
 
         root.getChildren().addAll(mapBox.getMapGroup(), playerBox.getGroup(), handBox.getHandGroup());
     }
@@ -95,15 +94,14 @@ public class BattleScene extends Show {
         mapBox.showDefend(defender, attacker);
     }
 
-    public void spell(AvailabilityType availabilityType, Position position) {
-        mapBox.showSpell(getSpellSpriteName(availabilityType), position.getRow(), position.getColumn());
+    public void spell(AvailabilityType availabilityType, Cell cell) {
+        mapBox.showSpell(getSpellSpriteName(availabilityType), cell.getRow(), cell.getColumn());
     }
 
     private String getSpellSpriteName(AvailabilityType availabilityType) {
         if (availabilityType.isOnAttack()) return spellSpriteNames.get(SpellType.ATTACK);
         if (availabilityType.isOnDeath()) return spellSpriteNames.get(SpellType.DEATH);
         if (availabilityType.isOnDefend()) return spellSpriteNames.get(SpellType.DEFEND);
-        if (availabilityType.isSpecialPower()) return spellSpriteNames.get(SpellType.SPECIAL_POWER);
         if (availabilityType.isContinuous()) return spellSpriteNames.get(SpellType.CONTINUOUS);
         if (availabilityType.isOnPut()) return spellSpriteNames.get(SpellType.PUT);
         return spellSpriteNames.get(SpellType.DEFAULT);
@@ -172,14 +170,14 @@ public class BattleScene extends Show {
             if (myPlayer.getHero() == null) {
                 mapBox.showSpell(
                         WINNER_SPRITE_NAME,
-                        myPlayer.getTroops().get(0).getPosition().getRow(),
-                        myPlayer.getTroops().get(0).getPosition().getColumn()
+                        myPlayer.getTroops().get(0).getCell().getRow(),
+                        myPlayer.getTroops().get(0).getCell().getColumn()
                 );
             } else {
                 mapBox.showSpell(
                         WINNER_SPRITE_NAME,
-                        myPlayer.getHero().getPosition().getRow(),
-                        myPlayer.getHero().getPosition().getColumn()
+                        myPlayer.getHero().getCell().getRow(),
+                        myPlayer.getHero().getCell().getColumn()
                 );
             }
         } else {
@@ -187,20 +185,20 @@ public class BattleScene extends Show {
             if (oppPlayer.getHero() == null) {
                 mapBox.showSpell(
                         WINNER_SPRITE_NAME,
-                        oppPlayer.getTroops().get(0).getPosition().getRow(),
-                        oppPlayer.getTroops().get(0).getPosition().getColumn()
+                        oppPlayer.getTroops().get(0).getCell().getRow(),
+                        oppPlayer.getTroops().get(0).getCell().getColumn()
                 );
             } else {
                 mapBox.showSpell(
                         WINNER_SPRITE_NAME,
-                        oppPlayer.getHero().getPosition().getRow(),
-                        oppPlayer.getHero().getPosition().getColumn()
+                        oppPlayer.getHero().getCell().getRow(),
+                        oppPlayer.getHero().getCell().getColumn()
                 );
             }
         }
     }
 
     private enum SpellType {
-        ATTACK, PUT, DEATH, CONTINUOUS, SPECIAL_POWER, DEFEND, DEFAULT, WINNER
+        ATTACK, PUT, DEATH, CONTINUOUS, DEFEND, DEFAULT
     }
 }

@@ -4,9 +4,6 @@ import server.clientPortal.models.comperessedData.CompressedTroop;
 import server.dataCenter.models.card.Card;
 import server.gameCenter.models.map.Cell;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class Troop {
     private Card card;
@@ -23,7 +20,6 @@ public class Troop {
     private boolean dontGiveBadEffect;
     private boolean noAttackFromWeakerOnes;
     private boolean disableHolyBuff;
-    private List<Card> flags = new ArrayList<>();
     private int playerNumber;
 
     public Troop(Card card, int playerNumber) {
@@ -40,12 +36,7 @@ public class Troop {
 
     public CompressedTroop toCompressedTroop() {
         return new CompressedTroop(
-                card, currentAp, currentHp, enemyHitChanges, cell, canMove, canAttack, isDisarm, noAttackFromWeakerOnes,
-                flags.size(), playerNumber);
-    }
-
-    void addFlag(Card card) {
-        this.flags.add(card);
+                card, currentAp, currentHp, enemyHitChanges, cell, canMove, canAttack, isDisarm, noAttackFromWeakerOnes, playerNumber);
     }
 
     public Card getCard() {
@@ -70,10 +61,6 @@ public class Troop {
 
     public boolean canMove() {
         return this.canMove;
-    }
-
-    public List<Card> getFlags() {
-        return Collections.unmodifiableList(flags);
     }
 
     void setCanMove(boolean can) {
@@ -123,16 +110,12 @@ public class Troop {
         return disableHolyBuff;
     }
 
-    int getPlayerNumber() {
+    public int getPlayerNumber() {
         return playerNumber;
     }
 
     public int getEnemyHitChanges() {
         return enemyHitChanges;
-    }
-
-    public void collectFlag(Card flag) {
-        this.flags.add(flag);
     }
 
     void changeCurrentAp(int change) {

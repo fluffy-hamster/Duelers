@@ -4,29 +4,32 @@ import models.card.Card;
 import models.card.Deck;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class Collection {
     private List<Card> heroes = new ArrayList<>();
     private List<Card> minions = new ArrayList<>();
     private List<Card> spells = new ArrayList<>();
-    private List<Card> items = new ArrayList<>();
+
+    // When two cards cost the same mana, sort alphabetically by name.
+    // Note that the current implementation only sorts by first character.
+    // Thus Az could appear before Ab, but Cz is always before Da.
+    private Comparator<Card> compareCostThenName = Comparator.comparingInt(Card::getManaCost).thenComparingInt(c -> c.getCardId().charAt(0));
 
     public List<Card> getHeroes() {
-        return Collections.unmodifiableList(heroes);
+        heroes.sort(compareCostThenName);
+        return heroes;
     }
 
     public List<Card> getMinions() {
-        return Collections.unmodifiableList(minions);
+        minions.sort(compareCostThenName);
+        return minions;
     }
 
     public List<Card> getSpells() {
-        return Collections.unmodifiableList(spells);
-    }
-
-    public List<Card> getItems() {
-        return Collections.unmodifiableList(items);
+        spells.sort(compareCostThenName);
+        return spells;
     }
 
     public Collection searchCollection(String cardName) {
@@ -34,7 +37,6 @@ public class Collection {
         searchInList(heroes, result.heroes, cardName);
         searchInList(minions, result.minions, cardName);
         searchInList(spells, result.spells, cardName);
-        searchInList(items, result.items, cardName);
         return result;
     }
 
@@ -71,17 +73,11 @@ public class Collection {
             case SPELL:
                 spells.add(card);
                 break;
-            case USABLE_ITEM:
-            case COLLECTIBLE_ITEM:
-                items.add(card);
-                break;
-            case FLAG:
-                break;
         }
     }
 
     private boolean hasCard(String cardId) {
-        return hasCard(cardId, heroes) || hasCard(cardId, minions) || hasCard(cardId, spells) || hasCard(cardId, items);
+        return hasCard(cardId, heroes) || hasCard(cardId, minions) || hasCard(cardId, spells);
     }
 
     private boolean hasCard(String cardId, List<Card> cards) {
@@ -96,10 +92,6 @@ public class Collection {
 
     public Card findHero(String heroId) {
         return findCardInList(heroId, heroes);
-    }
-
-    public Card findItem(String itemId) {
-        return findCardInList(itemId, items);
     }
 
     public Card findOthers(String cardId) {
@@ -123,9 +115,8 @@ public class Collection {
 
         if (heroes.size() != other.heroes.size() ||
                 minions.size() != other.minions.size() ||
-                spells.size() != other.spells.size() ||
-                items.size() != other.items.size()
-        ) return false;
+                spells.size() != other.spells.size())
+            return false;
 
         for (Card card : heroes) {
             if (!other.heroes.contains(card)) return false;
@@ -137,10 +128,6 @@ public class Collection {
 
         for (Card card : spells) {
             if (!other.spells.contains(card)) return false;
-        }
-
-        for (Card card : items) {
-            if (!other.items.contains(card)) return false;
         }
 
         return true;
@@ -157,7 +144,6 @@ public class Collection {
         findInList(heroes, result, cardName);
         findInList(minions, result, cardName);
         findInList(spells, result, cardName);
-        findInList(items, result, cardName);
         return result;
     }
 
@@ -178,7 +164,6 @@ public class Collection {
         convertListToShowing(collection.heroes, heroes);
         convertListToShowing(collection.spells, spells);
         convertListToShowing(collection.minions, minions);
-        convertListToShowing(collection.items, items);
         return collection;
     }
 
@@ -198,11 +183,6 @@ public class Collection {
                 return hero.getCardId();
             }
         }
-        for (Card item : items) {
-            if (item.isSameAs(cardName) && !deck.hasItem(item)) {
-                return item.getCardId();
-            }
-        }
         for (Card minion : minions) {
             if (minion.isSameAs(cardName) && !deck.hasCard(minion)) {
                 return minion.getCardId();
@@ -219,9 +199,8 @@ public class Collection {
     public Card removeCard(String cardName) {
         Card card;
         if (null != (card = removeFromList(heroes, cardName))) return card;
-        if (null != (card = removeFromList(items, cardName))) return card;
-        if (null != (card = removeFromList(spells, cardName))) return card;
         if (null != (card = removeFromList(minions, cardName))) return card;
+        if (null != (card = removeFromList(spells, cardName))) return card;
         return null;
     }
 

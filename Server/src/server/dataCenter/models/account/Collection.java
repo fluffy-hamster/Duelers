@@ -3,7 +3,6 @@ package server.dataCenter.models.account;
 import server.Server;
 import server.dataCenter.DataCenter;
 import server.dataCenter.models.card.Card;
-import server.dataCenter.models.card.CardType;
 import server.dataCenter.models.card.Deck;
 import server.dataCenter.models.card.ExportedDeck;
 import server.exceptions.ClientException;
@@ -18,10 +17,9 @@ public class Collection {
     private List<Card> heroes = new ArrayList<>();
     private List<Card> minions = new ArrayList<>();
     private List<Card> spells = new ArrayList<>();
-    private List<Card> items = new ArrayList<>();
 
     boolean hasCard(String cardId) {
-        return hasCard(cardId, heroes) || hasCard(cardId, minions) || hasCard(cardId, spells) || hasCard(cardId, items);
+        return hasCard(cardId, heroes) || hasCard(cardId, minions) || hasCard(cardId, spells);
     }
 
     private boolean hasCard(String cardId, List<Card> cards) {
@@ -52,8 +50,6 @@ public class Collection {
             return getCard(cardId, minions);
         if (hasCard(cardId, spells))
             return getCard(cardId, spells);
-        if (hasCard(cardId, items))
-            return getCard(cardId, items);
         return null;
     }
 
@@ -67,7 +63,7 @@ public class Collection {
 
     void addCard(String cardName, Collection originalCards, String username) throws ClientException {//for account collections
         Card card = DataCenter.getCard(cardName, originalCards);
-        if (card == null || card.getType() == CardType.COLLECTIBLE_ITEM) {
+        if (card == null) {
             Server.getInstance().serverPrint("Invalid CardName!");
             return;
         }
@@ -85,11 +81,11 @@ public class Collection {
 
     public void addCard(Card card) {//for shop
         if (card == null) {
-            Server.getInstance().serverPrint("Error!");
+            Server.getInstance().serverPrint("Error: Card is null");
             return;
         }
         if (hasCard(card.getCardId())) {
-            Server.getInstance().serverPrint("Error!");
+            Server.getInstance().serverPrint("Error: Account does not own '" + card.getCardId() + "'");
             return;
         }
         switch (card.getType()) {
@@ -102,13 +98,6 @@ public class Collection {
             case SPELL:
                 spells.add(card);
                 break;
-            case USABLE_ITEM:
-            case COLLECTIBLE_ITEM:
-                items.add(card);
-                break;
-            case FLAG:
-                Server.getInstance().serverPrint("Error");
-                break;
         }
     }
 
@@ -116,7 +105,6 @@ public class Collection {
         heroes.remove(card);
         minions.remove(card);
         spells.remove(card);
-        items.remove(card);
     }
 
     public Deck extractDeck(ExportedDeck exportedDeck) throws LogicException {
@@ -125,10 +113,6 @@ public class Collection {
         if (hero.isEmpty())
             throw new ClientException("you have not the hero");
         deck.addCard(hero.get(0));
-        ArrayList<Card> item = getCardsWithName(exportedDeck.getItemName(), items);
-        if (item.isEmpty())
-            throw new ClientException("you have not the item");
-        deck.addCard(item.get(0));
         for (Map.Entry<String, Integer> entry :
                 exportedDeck.getOtherCards().entrySet()) {
             ArrayList<Card> cards = getCardsWithName(entry.getKey(), minions);
@@ -152,9 +136,5 @@ public class Collection {
 
     public List<Card> getSpells() {
         return Collections.unmodifiableList(spells);
-    }
-
-    public List<Card> getItems() {
-        return Collections.unmodifiableList(items);
     }
 }

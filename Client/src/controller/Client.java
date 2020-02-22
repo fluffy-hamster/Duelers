@@ -4,13 +4,10 @@ import com.google.gson.Gson;
 import javafx.application.Platform;
 import models.Constants;
 import models.account.Account;
-import models.account.AccountInfo;
-import models.card.Card;
-import models.card.DeckInfo;
-import models.game.map.Position;
 import models.message.CardPosition;
 import models.message.GameUpdateMessage;
 import models.message.Message;
+import server.dataCenter.DataCenter;
 import view.BattleView.BattleScene;
 import view.*;
 
@@ -26,17 +23,9 @@ public class Client {
     private String clientName;
     private Account account;
     private Show currentShow;
-    private LinkedList<Message> receivingMessages = new LinkedList<>();
-    private DeckInfo[] customDecks;
-    private AccountInfo[] leaderBoard;
-    private Card selected;
-    private Position[] positions;
-    private boolean validation = true;
-    private String errorMessage;
     private Socket socket;
-    private Gson gson = new Gson();
+    private final Gson gson = new Gson();
     private Thread sendMessageThread;
-    private Thread receiveMessageThread;
     private BufferedReader bufferedReader;
 
     private Client() {
@@ -112,8 +101,29 @@ public class Client {
         }
     }
 
+    private String simplifyLogMessage(Message message, String sender){
+
+        final String header = String.format("%s says: ", sender);
+
+        switch (message.getMessageType()) {
+            case TROOP_UPDATE:
+
+                int currentAttack = message.getTroopUpdateMessage().getCompressedTroop().getCurrentAp();
+                int currentHealth = message.getTroopUpdateMessage().getCompressedTroop().getCurrentHp();
+
+                return header + message.getTroopUpdateMessage().getCompressedTroop().getCard().getCardId()
+                        + String.format(" is %d/%d and at location: ", currentAttack, currentHealth)
+                        + message.getTroopUpdateMessage().getCompressedTroop().getCell();
+
+            case CARD_POSITION:
+                return header + message.getCardPositionMessage().getCompressedCard().getCardId() + " has been moved to: " + message.getCardPositionMessage().getCardPosition();
+
+            default:
+                return null;
+        }
+    }
+
     private void sendMessages() throws IOException {
-        System.out.println("sending messages started");
         while (true) {
             Message message;
             synchronized (sendingMessages) {
@@ -124,6 +134,7 @@ public class Client {
                 socket.getOutputStream().write((json + "\n").getBytes());
 
                 System.out.println("message sent: " + json);
+
             } else {
                 try {
                     synchronized (sendingMessages) {
@@ -136,16 +147,20 @@ public class Client {
     }
 
     private void receiveMessages() throws IOException {
-        System.out.println("receiving messages started.");
         while (true) {
             String json = bufferedReader.readLine();
             Message message = gson.fromJson(json, Message.class);
 
-            System.out.println("message received: " + json);
-
+            String msg = simplifyLogMessage(message, "Server");
+            if (msg != null) {
+                System.out.println(msg);
+            } else {
+                System.out.println(json);
+            }
             handleMessage(message);
         }
     }
+
 
     private void handleMessage(Message message) {
         switch (message.getMessageType()) {
@@ -160,13 +175,7 @@ public class Client {
                 GameController.getInstance().calculateAvailableActions();
                 break;
             case ORIGINAL_CARDS_COPY:
-                ShopController.getInstance().setOriginalCards(message.getCardsCopyMessage().getCards());
-                break;
-            case LEADERBOARD_COPY:
-                MainMenuController.getInstance().setLeaderBoard(message.getLeaderBoardCopyMessage().getLeaderBoard());
-                break;
-            case STORIES_COPY:
-                StoryMenuController.getInstance().setStories(message.getStoriesCopyMessage().getStories());
+            case DONE:
                 break;
             case CARD_POSITION://TODO:CHANGE
                 CardPosition cardPosition = message.getCardPositionMessage().getCardPosition();
@@ -187,24 +196,21 @@ public class Client {
                         GameController.getInstance().getCurrentGame().moveCardToGraveYard(message.getCardPositionMessage().getCompressedCard());
                         GameController.getInstance().calculateAvailableActions();
                         break;
-                    case COLLECTED:
-                        GameController.getInstance().getCurrentGame().moveCardToCollectedItems(message.getCardPositionMessage().getCompressedCard());
-                        GameController.getInstance().calculateAvailableActions();
-                        break;
                 }
                 break;
             case TROOP_UPDATE:
                 GameController.getInstance().getCurrentGame().troopUpdate(message.getTroopUpdateMessage().getCompressedTroop());
                 GameController.getInstance().calculateAvailableActions();
                 break;
+            case SET_NEW_NEXT_CARD:
+                GameController.getInstance().getCurrentGame().moveCardToNext( message.getCompressedCard() );
+                break;
             case GAME_UPDATE:
                 GameUpdateMessage gameUpdateMessage = message.getGameUpdateMessage();
                 GameController.getInstance().getCurrentGame().gameUpdate(
                         gameUpdateMessage.getTurnNumber(),
                         gameUpdateMessage.getPlayer1CurrentMP(),
-                        gameUpdateMessage.getPlayer1NumberOfCollectedFlags(),
                         gameUpdateMessage.getPlayer2CurrentMP(),
-                        gameUpdateMessage.getPlayer2NumberOfCollectedFlags(),
                         gameUpdateMessage.getCellEffects());
                 GameController.getInstance().calculateAvailableActions();
                 break;
@@ -227,8 +233,6 @@ public class Client {
             case ANIMATION:
                 GameController.getInstance().showAnimation(message.getGameAnimations());
                 break;
-            case DONE:
-                break;
             case CHAT:
                 showOrSaveMessage(message);
                 break;
@@ -243,26 +247,7 @@ public class Client {
                     ((WaitingMenu) currentShow).close();
                 }
                 break;
-            case CHANGE_CARD_NUMBER:
-                ShopAdminController.getInstance().setValue(
-                        message.getChangeCardNumber().getCardName(),
-                        message.getChangeCardNumber().getNumber()
-                );
-                break;
-            case ADD_TO_ORIGINALS:
-                if (ShopController.isLoaded()) {
-                    ShopController.getInstance().addCard(message.getCard());
-                }
-                break;
-            case ADD_TO_CUSTOM_CARDS:
-                CustomCardRequestsController.getInstance().addCard(message.getCard());
-                break;
-            case REMOVE_FROM_CUSTOM_CARDS:
-                CustomCardRequestsController.getInstance().removeCard(message.getCardName());
-                break;
-            case CUSTOM_CARDS_COPY:
-                CustomCardRequestsController.getInstance().setCustomCardRequests(message.getCardsCopyMessage().getCards());
-                break;
+
             case ONLINE_GAMES_COPY:
                 OnlineGamesListController.getInstance().setOnlineGames(message.getOnlineGames());
                 break;
@@ -280,8 +265,6 @@ public class Client {
     }
 
     private void showError(Message message) {
-        validation = false;
-        errorMessage = message.getExceptionMessage().getExceptionString();
         Platform.runLater(() -> currentShow.showError(message.getExceptionMessage().getExceptionString()));
     }
 

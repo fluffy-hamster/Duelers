@@ -3,26 +3,19 @@ package view.BattleView;
 import controller.GameController;
 import controller.SoundEffectPlayer;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.scene.Group;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import models.card.CardType;
+import models.comperessedData.CompressedCard;
 import models.comperessedData.CompressedGameMap;
+import models.comperessedData.CompressedPlayer;
 import models.comperessedData.CompressedTroop;
-import models.game.map.Position;
 import models.gui.CardPane;
-import models.gui.DefaultLabel;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.FileInputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import static view.BattleView.Constants.NEGATIVE_BUFF_EFFECT;
@@ -37,25 +30,18 @@ public class MapBox implements PropertyChangeListener {
     private final double[][] cellsY = new double[5][9];
     private final HashMap<CompressedTroop, TroopAnimation> troopAnimationHashMap = new HashMap<>();
     private CompressedTroop selectedTroop = null;
-    private ArrayList<CompressedTroop> comboTroops = new ArrayList<>();
     private boolean spellSelected = false;
-    private boolean comboSelected = false;
     private CardPane cardPane = null;
     private SelectionType selectionType;
-    private DefaultLabel[][] flagLabels = new DefaultLabel[5][9];
-    private StackPane[][] flagPanes = new StackPane[5][9];
-    private HashMap<String, CardAnimation> collectibleItems = new HashMap<>();
-    private Image flag = new Image(new FileInputStream("Client/resources/ui/flag.png"));
 
-    MapBox(BattleScene battleScene, CompressedGameMap gameMap, double x, double y) throws Exception {
+
+    MapBox(BattleScene battleScene, CompressedGameMap gameMap) {
         this.battleScene = battleScene;
         this.gameMap = gameMap;
         mapGroup = new Group();
-        mapGroup.setLayoutY(y);
-        mapGroup.setLayoutX(x);
+        mapGroup.setLayoutY(Constants.MAP_Y);
+        mapGroup.setLayoutX(Constants.MAP_X);
         makePolygons();
-        addFlagLabels();
-        addCollectibleItems();
         resetSelection();
         for (CompressedTroop troop : gameMap.getTroops()) {
             updateTroop(null, troop);
@@ -95,51 +81,9 @@ public class MapBox implements PropertyChangeListener {
     }
 
     void addCircles() {
-        for (int j = 0; j < 5; j++) {
+        for (int j = 0; j < 5; j++) { // ToDo 5,9 should be Constants
             for (int i = 0; i < 9; i++) {
                 mapGroup.getChildren().add(new Circle(cellsX[j][i], cellsY[j][i], 2));
-            }
-        }
-    }
-
-    private void addCollectibleItems() {
-        for (int j = 0; j < 5; j++) {
-            for (int i = 0; i < 9; i++) {
-                if (gameMap.getCells()[j][i].getItem() != null) {
-                    CardAnimation cardAnimation = new CardAnimation(mapGroup, gameMap.getCells()[j][i].getItem(),
-                            cellsY[j][i], cellsX[j][i]);
-                    collectibleItems.put(gameMap.getCells()[j][i].getItem().getCardId(), cardAnimation);
-                    final int J = j, I = i;
-                    cardAnimation.getImageView().setOnMouseClicked(mouseEvent -> clickCell(J, I));
-                    cardAnimation.getImageView().setOnMouseExited(mouseEvent -> exitCell(J, I));
-                    cardAnimation.getImageView().setOnMouseEntered(mouseEvent -> hoverCell(J, I));
-                }
-            }
-        }
-    }
-
-    private void addFlagLabels() {
-        for (int j = 0; j < 5; j++) {
-            for (int i = 0; i < 9; i++) {
-                flagPanes[j][i] = new StackPane();
-                flagPanes[j][i].setLayoutX(cellsX[j][i]);
-                flagPanes[j][i].setLayoutY(cellsY[j][i]);
-                ImageView imageView = new ImageView(flag);
-                imageView.setFitHeight(Constants.FLAG_HEIGHT);
-                imageView.setFitWidth(Constants.FLAG_WIDTH);
-                flagLabels[j][i] = new DefaultLabel(Integer.toString(gameMap.getCell(j, i).getNumberOfFlags()),
-                        Constants.FLAG_FONT, Color.BLACK);
-                flagPanes[j][i].getChildren().addAll(imageView, flagLabels[j][i]);
-                if (gameMap.getCell(j, i).getNumberOfFlags() == 0) {
-                    flagPanes[j][i].setVisible(false);
-                } else {
-                    flagPanes[j][i].setVisible(true);
-                }
-                final int J = j, I = i;
-                flagPanes[J][I].setOnMouseClicked(mouseEvent -> clickCell(J, I));
-                flagPanes[J][I].setOnMouseExited(mouseEvent -> exitCell(J, I));
-                flagPanes[J][I].setOnMouseEntered(mouseEvent -> hoverCell(J, I));
-                mapGroup.getChildren().addAll(flagPanes[j][i]);
             }
         }
     }
@@ -158,11 +102,11 @@ public class MapBox implements PropertyChangeListener {
             troopAnimationHashMap.remove(oldTroop);
             troopAnimationHashMap.put(newTroop, animation);
             animation.updateApHp(newTroop.getCurrentAp(), newTroop.getCurrentHp());
-            animation.moveTo(newTroop.getPosition().getRow(), newTroop.getPosition().getColumn());
+            animation.moveTo(newTroop.getCell().getRow(), newTroop.getCell().getColumn());
         } else {
             try {
                 animation = new TroopAnimation(mapGroup, cellsX, cellsY, newTroop.getCard().getSpriteName(),
-                        newTroop.getPosition().getRow(), newTroop.getPosition().getColumn(),
+                        newTroop.getCell().getRow(), newTroop.getCell().getColumn(),
                         newTroop.getPlayerNumber() == 1,
                         newTroop.getPlayerNumber() == battleScene.getMyPlayerNumber());
                 animation.updateApHp(newTroop.getCurrentAp(), newTroop.getCurrentHp());
@@ -186,27 +130,6 @@ public class MapBox implements PropertyChangeListener {
         if (evt.getPropertyName().equals("troop")) {
             Platform.runLater(() -> updateTroop((CompressedTroop) evt.getOldValue(), (CompressedTroop) evt.getNewValue()));
         }
-        if (evt.getPropertyName().equals("flag")) {
-            Platform.runLater(() -> {
-                Position position = (Position) evt.getOldValue();
-                Integer newValue = (Integer) evt.getNewValue();
-                flagLabels[position.getRow()][position.getColumn()].setText(Integer.toString(newValue));
-                if (gameMap.getCell(position.getRow(), position.getColumn()).getNumberOfFlags() == 0) {
-                    flagPanes[position.getRow()][position.getColumn()].setVisible(false);
-                } else {
-                    flagPanes[position.getRow()][position.getColumn()].setVisible(true);
-                }
-            });
-        }
-        if (evt.getPropertyName().equals("item")) {
-            Platform.runLater(() -> {
-                CardAnimation cardAnimation = collectibleItems.get(evt.getOldValue());
-                if (cardAnimation != null) {
-                    cardAnimation.active();
-                    collectibleItems.remove(evt.getOldValue());
-                }
-            });
-        }
         if (evt.getPropertyName().equals("cellEffect")) {
             Platform.runLater(this::updateCellEffects);
         }
@@ -214,13 +137,10 @@ public class MapBox implements PropertyChangeListener {
 
     void resetSelection() {
         selectedTroop = null;
-        comboTroops.clear();
         spellSelected = false;
-        comboSelected = false;
         for (TroopAnimation animation : troopAnimationHashMap.values()) {
             animation.diSelect();
         }
-        battleScene.getPlayerBox().refreshComboAndSpell();
         updateMapColors();
     }
 
@@ -236,7 +156,7 @@ public class MapBox implements PropertyChangeListener {
         TroopAnimation animation = troopAnimationHashMap.get(troop);
         if (animation == null)
             return;
-        if (!(selectedTroop == troop || comboTroops.contains(troop))) {
+        if (!(selectedTroop == troop)) {
             animation.diSelect();
         }
     }
@@ -272,10 +192,23 @@ public class MapBox implements PropertyChangeListener {
         CompressedTroop currentTroop = getTroop(row, column);
         if (selectionType == SelectionType.INSERTION) {
             if (GameController.getInstance().getAvailableActions().canInsertCard(battleScene.getHandBox().getSelectedCard())) {
-                battleScene.getController().insert(battleScene.getHandBox().getSelectedCard(), row, column);
-                System.out.println("Insert " + battleScene.getHandBox().getSelectedCard().getCardId());
-                battleScene.getHandBox().resetSelection();
-                resetSelection();
+
+                CompressedCard card = battleScene.getHandBox().getSelectedCard();
+                CompressedPlayer player = GameController.getInstance().getCurrentGame().getCurrentTurnPlayer();
+                if (card.getType() == CardType.MINION || card.getType() == CardType.HERO){
+                    if (GameController.getInstance().getAvailableActions().canDeployMinionOnSquare(gameMap, player, card, row, column)){
+                        battleScene.getController().insert(card, row, column);
+                        System.out.println("Insert " + battleScene.getHandBox().getSelectedCard().getCardId());
+                        battleScene.getHandBox().resetSelection();
+                        resetSelection();
+                    }
+                }
+                else if (card.getType() == CardType.SPELL){
+                    battleScene.getController().insert(card, row, column);
+                    System.out.println("Insert " + battleScene.getHandBox().getSelectedCard().getCardId());
+                    battleScene.getHandBox().resetSelection();
+                    resetSelection();
+                }
             }
             return;
         }
@@ -288,45 +221,12 @@ public class MapBox implements PropertyChangeListener {
             }
             return;
         }
-        if (selectedTroop != null && selectedTroop.getPosition().getRow() == row &&
-                selectedTroop.getPosition().getColumn() == column) {
+        if (selectedTroop != null && selectedTroop.getCell().getRow() == row &&
+                selectedTroop.getCell().getColumn() == column) {
             System.out.println("DiSelect");
             SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.select);
             battleScene.getHandBox().resetSelection();
             resetSelection();
-            return;
-        }
-        if (selectionType == SelectionType.SPELL) {
-            if (GameController.getInstance().getAvailableActions().canUseSpecialAction(selectedTroop)) {
-                battleScene.getController().useSpecialPower(row, column);
-                System.out.println(selectedTroop.getCard().getCardId() + " SpecialPower");
-                battleScene.getHandBox().resetSelection();
-                resetSelection();
-            }
-            return;
-        }
-        if (selectionType == SelectionType.COMBO) {
-            if (currentTroop != null && currentTroop.getPlayerNumber() == battleScene.getMyPlayerNumber()
-                    && currentTroop.getCard().isHasCombo()) {
-                if (comboTroops.contains(currentTroop)) {
-                    comboTroops.remove(currentTroop);
-                    System.out.println("remove " + currentTroop.getCard().getCardId() + " from combos");
-                    SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.select);
-                } else {
-                    comboTroops.add(currentTroop);
-                    System.out.println("add " + currentTroop.getCard().getCardId() + " to combos");
-                    SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.select);
-                }
-                updateMapColors();
-            } else if (GameController.getInstance().getAvailableActions().canAttack(
-                    selectedTroop, row, column)) {
-                comboTroops.add(selectedTroop);
-                battleScene.getController().comboAttack(comboTroops, currentTroop);
-                battleScene.getHandBox().resetSelection();
-                resetSelection();
-                System.out.println("combo attack");
-                SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.attack);
-            }
             return;
         }
         if (selectionType == SelectionType.NORMAL) {
@@ -345,13 +245,12 @@ public class MapBox implements PropertyChangeListener {
                 resetSelection();
                 SoundEffectPlayer.getInstance().playSound(SoundEffectPlayer.SoundName.move);
             }
-            return;
         }
     }
 
     void updateMapColors() {
         updateSelectionType();
-        for (int row = 0; row < 5; row++) {
+        for (int row = 0; row < 5; row++) { // ToDo: 5, 9 should be constants
             for (int column = 0; column < 9; column++) {
                 if (!battleScene.isMyTurn()) {
                     cells[row][column].setFill(Constants.defaultColor);
@@ -363,7 +262,16 @@ public class MapBox implements PropertyChangeListener {
                             battleScene.getHandBox().getSelectedCard())) {
                         if (battleScene.getHandBox().getSelectedCard().getType() == CardType.HERO ||
                                 battleScene.getHandBox().getSelectedCard().getType() == CardType.MINION) {
-                            cells[row][column].setFill(Constants.MOVE_COLOR);
+
+                            CompressedCard card = battleScene.getHandBox().getSelectedCard();
+                            CompressedPlayer player = GameController.getInstance().getCurrentGame().getCurrentTurnPlayer();
+                            if (GameController.getInstance().getAvailableActions().canDeployMinionOnSquare(gameMap, player, card, row, column)){
+                                cells[row][column].setFill(Constants.MOVE_COLOR);
+                            }
+                            else {
+                                cells[row][column].setFill(Constants.defaultColor);
+                            }
+
                         } else {
                             cells[row][column].setFill(Constants.SPELL_COLOR);
                         }
@@ -378,29 +286,14 @@ public class MapBox implements PropertyChangeListener {
                         cells[row][column].setFill(Constants.defaultColor);
                     continue;
                 }
-                if (selectedTroop != null && selectedTroop.getPosition().getRow() == row &&
-                        selectedTroop.getPosition().getColumn() == column) {
+                if (selectedTroop != null && selectedTroop.getCell().getRow() == row &&
+                        selectedTroop.getCell().getColumn() == column) {
                     cells[row][column].setFill(Constants.SELECTED_COLOR);//not important
                     continue;
                 }
+
                 if (selectionType == SelectionType.SPELL) {
-                    if (GameController.getInstance().getAvailableActions().canUseSpecialAction(selectedTroop)) {
-                        cells[row][column].setFill(Constants.SPELL_COLOR);
-                    } else
-                        cells[row][column].setFill(Constants.defaultColor);
-                    continue;
-                }
-                if (selectionType == SelectionType.COMBO) {
-                    if (currentTroop != null && currentTroop.getPlayerNumber() == battleScene.getMyPlayerNumber()
-                            && currentTroop.getCard().isHasCombo()) {
-                        if (comboTroops.contains(currentTroop))
-                            cells[row][column].setFill(Constants.SELECTED_COLOR);
-                        else
-                            cells[row][column].setFill(Constants.CAN_SELECT_COLOR);
-                    } else if (GameController.getInstance().getAvailableActions().canAttack(selectedTroop, row, column))
-                        cells[row][column].setFill(Constants.ATTACK_COLOR);
-                    else
-                        cells[row][column].setFill(Constants.defaultColor);
+                    cells[row][column].setFill(Constants.defaultColor);
                     continue;
                 }
                 if (selectionType == SelectionType.NORMAL) {
@@ -410,7 +303,6 @@ public class MapBox implements PropertyChangeListener {
                         cells[row][column].setFill(Constants.MOVE_COLOR);
                     else
                         cells[row][column].setFill(Constants.defaultColor);
-                    continue;
                 }
             }
         }
@@ -440,10 +332,6 @@ public class MapBox implements PropertyChangeListener {
             selectionType = SelectionType.SELECTION;
             return;
         }
-        if (isComboSelected()) {
-            selectionType = SelectionType.COMBO;
-            return;
-        }
         if (isSpellSelected()) {
             selectionType = SelectionType.SPELL;
             return;
@@ -453,7 +341,7 @@ public class MapBox implements PropertyChangeListener {
 
     private CompressedTroop getTroop(int j, int i) {
         for (CompressedTroop troop : troopAnimationHashMap.keySet()) {
-            if (troop.getPosition().getRow() == j && troop.getPosition().getColumn() == i)
+            if (troop.getCell().getRow() == j && troop.getCell().getColumn() == i)
                 return troop;
         }
         return null;
@@ -467,16 +355,8 @@ public class MapBox implements PropertyChangeListener {
         this.spellSelected = true;
     }
 
-    void setComboSelected() {
-        this.comboSelected = true;
-    }
-
     boolean isSpellSelected() {
         return spellSelected;
-    }
-
-    boolean isComboSelected() {
-        return comboSelected;
     }
 
     CompressedGameMap getGameMap() {
@@ -495,7 +375,7 @@ public class MapBox implements PropertyChangeListener {
             if (animation == null)
                 System.out.println("Error2 MapBox");
             else
-                animation.attack(defenderTroop.getPosition().getColumn());
+                animation.attack(defenderTroop.getCell().getColumn());
         }
     }
 
@@ -509,7 +389,7 @@ public class MapBox implements PropertyChangeListener {
             if (animation == null)
                 System.out.println("Error4 MapBox");
             else
-                animation.hit(attackerTroop.getPosition().getColumn());
+                animation.hit(attackerTroop.getCell().getColumn());
         }
     }
 
@@ -524,6 +404,6 @@ public class MapBox implements PropertyChangeListener {
     }
 
     enum SelectionType {
-        INSERTION, SELECTION, COMBO, SPELL, NORMAL
+        INSERTION, SELECTION, SPELL, NORMAL
     }
 }

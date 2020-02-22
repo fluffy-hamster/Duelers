@@ -6,7 +6,6 @@ import models.message.Message;
 
 public class CustomGameMenuController {
     private static CustomGameMenuController ourInstance;
-    private String help;
 
     private CustomGameMenuController() {
     }
@@ -18,9 +17,8 @@ public class CustomGameMenuController {
         return ourInstance;
     }
 
-    public void startGame(String deckName, GameType gameType, int numberOfFlags) {
+    public void startGame(String deckName, GameType gameType) {
         Client.getInstance().addToSendingMessagesAndSend(
-                Message.makeNewCustomGameMessage(Constants.SERVER_NAME, gameType,
-                        numberOfFlags, deckName));
+                Message.makeNewCustomGameMessage(Constants.SERVER_NAME, gameType, deckName));
     }
 }

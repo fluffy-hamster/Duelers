@@ -18,11 +18,10 @@ public class EditableCard implements ICard {
     private ArrayList<Spell> spells = new ArrayList<>();
     private int defaultAp;
     private int defaultHp;
-    private int mannaPoint;
+    private int manaCost;
     private int price;
     private AttackType attackType;
     private int range;
-    private boolean hasCombo;
 
     public void addSpell(Spell spell) {
         spells.add(spell);
@@ -42,10 +41,6 @@ public class EditableCard implements ICard {
 
     public void setRange(int range) {
         this.range = range;
-    }
-
-    public void setHasCombo(boolean hasCombo) {
-        this.hasCombo = hasCombo;
     }
 
     @Override
@@ -127,14 +122,14 @@ public class EditableCard implements ICard {
     }
 
     @Override
-    public int getMannaPoint() {
-        return mannaPoint;
+    public int getManaCost() {
+        return manaCost;
     }
 
-    public void setMannaPoint(int mannaPoint) {
-        int old = this.mannaPoint;
-        this.mannaPoint = mannaPoint;
-        support.firePropertyChange("mannaPoint", old, mannaPoint);
+    public void setManaCost(int manaCost) {
+        int old = this.manaCost;
+        this.manaCost = manaCost;
+        support.firePropertyChange("manaCost", old, manaCost);
     }
 
     public void checkValidation() throws InputException {
@@ -144,7 +139,7 @@ public class EditableCard implements ICard {
             throw new InputException("description is empty");
         if (spriteName == null || spriteName.isEmpty())
             throw new InputException("sprite is empty");
-        if ((type == CardType.SPELL || type == CardType.USABLE_ITEM) && spells.isEmpty()) {
+        if ((type == CardType.SPELL) && spells.isEmpty()) {
             throw new InputException("Spell is empty");
         }
     }
@@ -156,8 +151,8 @@ public class EditableCard implements ICard {
     public Card toImmutableCard() {
         return new Card(
                 name, cardId, description, spriteName, type,
-                spells, defaultAp, defaultHp, mannaPoint,
-                price, attackType, range, hasCombo
+                spells, defaultAp, defaultHp, manaCost,
+                price, attackType, range
         );
     }
 }

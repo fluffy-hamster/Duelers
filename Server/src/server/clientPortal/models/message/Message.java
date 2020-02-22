@@ -2,13 +2,14 @@ package server.clientPortal.models.message;
 
 import server.Server;
 import server.clientPortal.models.JsonConverter;
+import server.clientPortal.models.comperessedData.CompressedCard;
 import server.dataCenter.models.account.Account;
 import server.dataCenter.models.account.Collection;
 import server.dataCenter.models.card.Card;
 import server.dataCenter.models.card.ExportedDeck;
 import server.dataCenter.models.card.spell.AvailabilityType;
 import server.gameCenter.models.game.*;
-import server.gameCenter.models.map.Position;
+import server.gameCenter.models.map.Cell;
 
 import java.util.List;
 import java.util.Set;
@@ -23,8 +24,6 @@ public class Message {
     private GameCopyMessage gameCopyMessage;
     private CardsCopyMessage cardsCopyMessage;
     private AccountCopyMessage accountCopyMessage;
-    private LeaderBoardCopyMessage leaderBoardCopyMessage;
-    private StoriesCopyMessage storiesCopyMessage;
     private CardPositionMessage cardPositionMessage;
     private TroopUpdateMessage troopUpdateMessage;
     private GameUpdateMessage gameUpdateMessage;
@@ -42,10 +41,12 @@ public class Message {
     private OnlineGame onlineGame;
     //SENDER:DUAL
     private Card card;
+    private String cardID;
     private ChatMessage chatMessage;
     private NewGameFields newGameFields;
     private ChangeCardNumber changeCardNumber;
     private ChangeAccountType changeAccountType;
+    private CompressedCard compressedCard;
 
 
     private Message(String receiver) {
@@ -84,20 +85,6 @@ public class Message {
         return message;
     }
 
-    public static Message makeLeaderBoardCopyMessage(String receiver, Account[] leaderBoard) {
-        Message message = new Message(receiver);
-        message.leaderBoardCopyMessage = new LeaderBoardCopyMessage(leaderBoard);
-        message.messageType = MessageType.LEADERBOARD_COPY;
-        return message;
-    }
-
-    public static Message makeStoriesCopyMessage(String receiver, Story[] stories) {
-        Message message = new Message(receiver);
-        message.storiesCopyMessage = new StoriesCopyMessage(stories);
-        message.messageType = MessageType.STORIES_COPY;
-        return message;
-    }
-
     public static Message makeChangeCardPositionMessage(String receiver, Card card, CardPosition cardPosition) {
         Message message = new Message(receiver);
         message.cardPositionMessage = new CardPositionMessage(card, cardPosition);
@@ -115,11 +102,17 @@ public class Message {
         return message;
     }
 
+    public static Message makeNewNextCardSetMessage(String receiver, CompressedCard nextCard) {
+        Message message = new Message(receiver);
+        message.messageType = MessageType.SET_NEW_NEXT_CARD;
+        message.compressedCard = nextCard;
+        return message;
+    }
 
-    public static Message makeSpellMessage(String receiver, Set<Position> positions, AvailabilityType availabilityType) {
+    public static Message makeSpellMessage(String receiver, Set<Cell> cells, AvailabilityType availabilityType) {
         Message message = new Message(receiver);
         message.gameAnimations = new GameAnimations();
-        message.gameAnimations.addSpellAnimation(positions, availabilityType);
+        message.gameAnimations.addSpellAnimation(cells, availabilityType);
         message.messageType = MessageType.ANIMATION;
         return message;
     }
@@ -131,12 +124,11 @@ public class Message {
         return message;
     }
 
-    public static Message makeGameUpdateMessage(String receiver, int turnNumber, int player1CurrentMP,
-                                                int player1NumberOfCollectedFlags, int player2CurrentMP,
-                                                int player2NumberOfCollectedFlags, List<CellEffect> cellEffects) {
+    public static Message makeGameUpdateMessage(String receiver, int turnNumber, int player1CurrentMP, int player2CurrentMP,
+                                                List<CellEffect> cellEffects) {
         Message message = new Message(receiver);
-        message.gameUpdateMessage = new GameUpdateMessage(turnNumber, player1CurrentMP, player1NumberOfCollectedFlags,
-                player2CurrentMP, player2NumberOfCollectedFlags, cellEffects);
+        message.gameUpdateMessage = new GameUpdateMessage(turnNumber, player1CurrentMP,
+                player2CurrentMP,  cellEffects);
         message.messageType = MessageType.GAME_UPDATE;
         return message;
     }
@@ -170,10 +162,10 @@ public class Message {
         return message;
     }
 
-    public static Message makeInvitationMessage(String receiver, String inviterUsername, GameType gameType, int numberOfFlags) {
+    public static Message makeInvitationMessage(String receiver, String inviterUsername, GameType gameType) {
         Message message = new Message(receiver);
         message.messageType = MessageType.INVITATION;
-        message.newGameFields = new NewGameFields(gameType, numberOfFlags, 0, null, inviterUsername);
+        message.newGameFields = new NewGameFields(gameType, 0, null, inviterUsername);
         return message;
     }
 
@@ -200,27 +192,6 @@ public class Message {
         Message message = new Message(receiver);
         message.card = card;
         message.messageType = MessageType.ADD_TO_ORIGINALS;
-        return message;
-    }
-
-    public static Message makeAddCustomCardMessage(String receiver, Card card) {
-        Message message = new Message(receiver);
-        message.card = card;
-        message.messageType = MessageType.ADD_TO_CUSTOM_CARDS;
-        return message;
-    }
-
-    public static Message makeRemoveCustomCardMessage(String receiver, String cardName) {
-        Message message = new Message(receiver);
-        message.cardName = cardName;
-        message.messageType = MessageType.REMOVE_FROM_CUSTOM_CARDS;
-        return message;
-    }
-
-    public static Message makeCustomCardsCopyMessage(String receiver, Collection customCards) {
-        Message message = new Message(receiver);
-        message.cardsCopyMessage = new CardsCopyMessage(customCards);
-        message.messageType = MessageType.CUSTOM_CARDS_COPY;
         return message;
     }
 
@@ -289,5 +260,9 @@ public class Message {
 
     public OnlineGame getOnlineGame() {
         return onlineGame;
+    }
+
+    public String getCardID() {
+        return cardID;
     }
 }

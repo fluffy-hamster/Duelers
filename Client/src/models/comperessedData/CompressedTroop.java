@@ -1,50 +1,44 @@
 package models.comperessedData;
 
-import models.game.map.Position;
+import models.game.map.Cell;
 
 public class CompressedTroop {
     private CompressedCard card;
     private int currentAp;
     private int currentHp;
     private int enemyHitChanges;
-    private Position position;
+    private Cell cell;
     private boolean canMove;
     private boolean canAttack;
     private boolean isDisarm;
     private boolean noAttackFromWeakerOnes;
-    private int numberOfCollectedFlags;
     private int playerNumber;
 
     //just for testing BattleView
-
-
     public CompressedTroop(CompressedTroop troop, int row, int column) {
         this.card = troop.getCard();
         this.currentAp = troop.getCurrentAp();
         this.currentHp = troop.getCurrentHp();
         this.enemyHitChanges = troop.getEnemyHitChanges();
-        this.position = new Position(row, column);
+        this.cell = new Cell(row, column);
         this.canMove = troop.canMove;
         this.canAttack = troop.canAttack;
         this.isDisarm = troop.isDisarm;
         this.noAttackFromWeakerOnes = troop.noAttackFromWeakerOnes;
-        this.numberOfCollectedFlags = troop.numberOfCollectedFlags;
         this.playerNumber = troop.playerNumber;
     }
 
-    public CompressedTroop(CompressedCard card, int currentAp, int currentHp, int enemyHitChanges, Position position,
-                           boolean canMove, boolean canAttack, boolean isDisarm, boolean noAttackFromWeakerOnes,
-                           int numberOfCollectedFlags, int playerNumber) {
+    public CompressedTroop(CompressedCard card, int currentAp, int currentHp, int enemyHitChanges, Cell cell,
+                           boolean canMove, boolean canAttack, boolean isDisarm, boolean noAttackFromWeakerOnes, int playerNumber) {
         this.card = card;
         this.currentAp = currentAp;
         this.currentHp = currentHp;
         this.enemyHitChanges = enemyHitChanges;
-        this.position = position;
+        this.cell = cell;
         this.canMove = canMove;
         this.canAttack = canAttack;
         this.isDisarm = isDisarm;
         this.noAttackFromWeakerOnes = noAttackFromWeakerOnes;
-        this.numberOfCollectedFlags = numberOfCollectedFlags;
         this.playerNumber = playerNumber;
     }
 
@@ -64,8 +58,8 @@ public class CompressedTroop {
         return enemyHitChanges;
     }
 
-    public Position getPosition() {
-        return position;
+    public Cell getCell() {
+        return cell;
     }
 
     public boolean canMove() {
@@ -82,10 +76,6 @@ public class CompressedTroop {
 
     public boolean isNoAttackFromWeakerOnes() {
         return noAttackFromWeakerOnes;
-    }
-
-    public int getNumberOfCollectedFlags() {
-        return numberOfCollectedFlags;
     }
 
     public int getPlayerNumber() {

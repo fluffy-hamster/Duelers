@@ -6,10 +6,7 @@ import server.clientPortal.models.JsonConverter;
 import server.dataCenter.DataBase;
 import server.dataCenter.models.account.Collection;
 import server.dataCenter.models.card.Card;
-import server.dataCenter.models.card.CardType;
-import server.dataCenter.models.sorter.StoriesSorter;
-import server.gameCenter.models.game.Story;
-import server.gameCenter.models.game.TempStory;
+
 
 import java.io.File;
 import java.util.ArrayList;
@@ -21,23 +18,13 @@ import static server.dataCenter.DataCenter.loadFile;
 public class Rest implements DataBase {
 
     private static final String ACCOUNTS_PATH = "Server/resources/accounts";
-    private static final String CUSTOM_CARD_PATH = "Server/resources/customCards";
     private static final String[] CARDS_PATHS = {
             "resources/heroCards",
             "resources/minionCards",
-            "resources/spellCards",
-            "resources/itemCards/collectible",
-            "resources/itemCards/usable",
-            CUSTOM_CARD_PATH};
-    private static final String FLAG_PATH = "Server/resources/itemCards/flag/Flag.item.card.json";
-    private static final String STORIES_PATH = "Server/resources/stories";
+            "resources/spellCards"};
 
     private enum maps {
-        ORINGINAL_CARDS("originalCards"),
-        CUSTOM_CARDS("customCards"),
-        COLLECTIBLE_ITEMS("collectibleItems"),
-        STORIES("stories"),
-        ORIGINAL_FLAG("originalFlag");
+        ORIGINAL_CARDS("originalCards");
 
         maps(String s) {
             path = s;
@@ -52,32 +39,6 @@ public class Rest implements DataBase {
         Rest rest = new Rest();
 
         readCards(rest);
-        read(rest);
-        List x = rest.getAllKeys(maps.STORIES.path);
-        for (Object o :
-                x) {
-            Story story = JsonConverter.fromJson((String) o, Story.class);
-//            System.out.println(card.getName());
-            System.out.println((String) o);
-        }
-
-        for (Story story :
-                rest.getStories()) {
-            System.out.println(story.getDeck().getOthers().size());
-        }
-    }
-
-
-    private static void read(Rest dataBase) {
-        File[] files = new File(STORIES_PATH).listFiles();
-        if (files != null) {
-            for (File file : files) {
-                TempStory story = loadFile(file, TempStory.class);
-                if (story == null) continue;
-
-                dataBase.addStory(new Story(story, dataBase.getOriginalCards()));
-            }
-        }
     }
 
     private static void readCards(Rest dataBase) {
@@ -86,19 +47,12 @@ public class Rest implements DataBase {
             if (files != null) {
                 for (File file : files) {
                     Card card = loadFile(file, Card.class);
-                    if (card == null) continue;
-                    if (path.equals(CUSTOM_CARD_PATH)) {
-                        dataBase.addNewCustomCards(card);
-                    } else if (card.getType() == CardType.COLLECTIBLE_ITEM) {
-                        dataBase.addNewCollectible(card);
-                    } else {
+                    if (card != null) {
                         dataBase.addOriginalCard(card);
                     }
                 }
             }
         }
-        dataBase.setOriginalFlag(loadFile(new File(FLAG_PATH), Card.class));
-
     }
 
     public Rest() {
@@ -111,7 +65,7 @@ public class Rest implements DataBase {
 
     private int put(String name, String key, String value) {
         final String path = "put";
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("name", name);
         parameters.put("key", key);
@@ -129,7 +83,7 @@ public class Rest implements DataBase {
 
     private int createMap(String name) {
         final String path = "init_DB";
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("name", name);
         try {
@@ -149,7 +103,7 @@ public class Rest implements DataBase {
     }
 
     private ArrayList getList(String name, String path) {
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("name", name);
         try {
@@ -172,7 +126,7 @@ public class Rest implements DataBase {
 
     private String getFromDataBase(String name, String key) {
         final String path = "get";
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("name", name);
         parameters.put("key", key);
@@ -189,7 +143,7 @@ public class Rest implements DataBase {
 
     private int delete(String name, String key) {
         final String path = "del_from_DB";
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("name", name);
         parameters.put("key", key);
@@ -207,25 +161,18 @@ public class Rest implements DataBase {
 
     @Override
     public Card getCard(String cardName) {
-        String json = getFromDataBase(maps.ORINGINAL_CARDS.path, cardName);
+        String json = getFromDataBase(maps.ORIGINAL_CARDS.path, cardName);
         return JsonConverter.fromJson(json, Card.class);
     }
 
     @Override
     public Collection getOriginalCards() {
-        List jsons = getAllValues(maps.ORINGINAL_CARDS.path);
+        List jsons = getAllValues(maps.ORIGINAL_CARDS.path);
         Collection collection = new Collection();
         for (Object o : jsons) {
             collection.addCard(JsonConverter.fromJson((String) o, Card.class));
         }
         return collection;
-    }
-
-    @Override
-    public List<Story> getStories() {
-        List<Story> stories = getList(getAllKeys(maps.STORIES.path), Story.class);
-        stories.sort(new StoriesSorter());
-        return stories;
     }
 
     private <T> List<T> getList(List list, Class<T> classOfT) {
@@ -237,57 +184,9 @@ public class Rest implements DataBase {
         return arrayList;
     }
 
-
-    @Override
-    public List<Card> getCollectibleItems() {
-        return getList(getAllValues(maps.COLLECTIBLE_ITEMS.path), Card.class);
-    }
-
-    @Override
-    public Collection getNewCustomCards() {
-        List jsons = getAllValues(maps.CUSTOM_CARDS.path);
-        Collection collection = new Collection();
-        for (Object o : jsons) {
-            collection.addCard(JsonConverter.fromJson((String) o, Card.class));
-        }
-        return collection;
-    }
-
-    @Override
-    public Card getOriginalFlag() {
-        return JsonConverter.fromJson(getFromDataBase(maps.ORIGINAL_FLAG.path, maps.ORIGINAL_FLAG.path), Card.class);
-    }
-
-    @Override
-    public void addNewCustomCards(Card card) {
-        put(maps.CUSTOM_CARDS.path, card.getName(), JsonConverter.toJson(card));
-    }
-
-    @Override
-    public void removeCustomCards(Card card) {
-        delete(maps.CUSTOM_CARDS.path, card.getName());
-    }
-
     @Override
     public void addOriginalCard(Card card) {
-        put(maps.ORINGINAL_CARDS.path, card.getName(), JsonConverter.toJson(card));
-    }
-
-    @Override
-    public void addNewCollectible(Card card) {
-        put(maps.COLLECTIBLE_ITEMS.path, card.getName(), JsonConverter.toJson(card));
-
-    }
-
-    @Override
-    public void setOriginalFlag(Card card) {
-        put(maps.ORIGINAL_FLAG.path, maps.ORIGINAL_FLAG.path, JsonConverter.toJson(card));
-    }
-
-    @Override
-    public void addStory(Story story) {
-        put(maps.STORIES.path, JsonConverter.toJson(story), "");
-
+        put(maps.ORIGINAL_CARDS.path, card.getName(), JsonConverter.toJson(card));
     }
 
     @Override

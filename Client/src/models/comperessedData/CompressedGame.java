@@ -16,15 +16,6 @@ public class CompressedGame {
 
     private PropertyChangeSupport support = new PropertyChangeSupport(this);
 
-    //just for testing BattleView
-    public CompressedGame(CompressedPlayer playerOne, CompressedPlayer playerTwo, CompressedGameMap gameMap, int turnNumber, GameType gameType) {
-        this.playerOne = playerOne;
-        this.playerTwo = playerTwo;
-        this.gameMap = gameMap;
-        this.turnNumber = turnNumber;
-        this.gameType = gameType;
-    }
-
     public void addPropertyChangeListener(PropertyChangeListener pcl) {
         if (support == null) {
             support = new PropertyChangeSupport(this);
@@ -67,15 +58,8 @@ public class CompressedGame {
         } else {
             player = getCurrentTurnPlayer();
             player.removeCardFromHand(card.getCardId());
-            player.removeCardFromCollectedItems(card.getCardId());
             player.addCardToGraveYard(card);
         }
-    }
-
-    public void moveCardToCollectedItems(CompressedCard card) {
-        CompressedPlayer player = getCurrentTurnPlayer();
-        gameMap.removeItem(card.getCardId());
-        player.addCardToCollectedItems(card);
     }
 
     public void troopUpdate(CompressedTroop troop) {
@@ -87,8 +71,8 @@ public class CompressedGame {
         }
     }
 
-    public void gameUpdate(int turnNumber, int player1CurrentMP, int player1NumberOfCollectedFlags,
-                           int player2CurrentMP, int player2NumberOfCollectedFlags, CellEffect[] cellEffects) {
+    public void gameUpdate(int turnNumber, int player1CurrentMP,
+                           int player2CurrentMP, CellEffect[] cellEffects) {
         int maxMP = 9;
         if (turnNumber < 14)
             maxMP = turnNumber / 2 + 2;
@@ -112,9 +96,6 @@ public class CompressedGame {
             support.firePropertyChange("mp2", player2CurrentMP, maxMP);
             playerTwo.setCurrentMP(player2CurrentMP, turnNumber);
         }
-        playerOne.setNumberOfCollectedFlags(player1NumberOfCollectedFlags);
-        playerTwo.setNumberOfCollectedFlags(player2NumberOfCollectedFlags);
-        support.firePropertyChange("flag", player2CurrentMP, maxMP);
         gameMap.updateCellEffects(cellEffects);
     }
 

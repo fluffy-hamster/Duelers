@@ -1,8 +1,6 @@
 package server.gameCenter.models.map;
 
 import server.clientPortal.models.comperessedData.CompressedGameMap;
-import server.dataCenter.models.card.Card;
-import server.gameCenter.models.game.Player;
 import server.gameCenter.models.game.Troop;
 
 import java.util.*;
@@ -12,29 +10,17 @@ public class GameMap {
     private Cell[][] cells;
     private List<Troop> troops = new ArrayList<>();
 
-    public GameMap(List<Card> items, int numberOfFlags, Card originalFlag) {
+    public GameMap() {
         cells = new Cell[ROW_NUMBER][COLUMN_NUMBER];
         for (int i = 0; i < ROW_NUMBER; i++) {
             for (int j = 0; j < COLUMN_NUMBER; j++) {
                 cells[i][j] = new Cell(i, j);
             }
         }
-        LinkedList<Card> newItems = new LinkedList<>(items);
-        Collections.shuffle(newItems);
 
-        cells[0][4].addItem(newItems.poll());
-        cells[2][5].addItem(newItems.poll());
-        cells[4][4].addItem(newItems.poll());
-
-        for (int i = 0; i < numberOfFlags; i++) {
-            int row = new Random().nextInt(ROW_NUMBER);
-            int column = new Random().nextInt(COLUMN_NUMBER);
-            while (!cells[row][column].getItems().isEmpty()) {
-                row = new Random().nextInt(ROW_NUMBER);
-                column = new Random().nextInt(COLUMN_NUMBER);
-            }
-            cells[row][column].addItem(new Card(originalFlag, "Flag", i));
-        }
+        // If we want to add items to the board on startup (eg terrain, mana springs, etc)
+        // If can be placed here by setting cell[x][y] as the item
+        // (0,4) | (2,5) | (4,4) are the correct coordinates for mana springs.
     }
 
     public static int getRowNumber() {
@@ -49,8 +35,8 @@ public class GameMap {
         return new CompressedGameMap(cells, troops);
     }
 
-    public Cell getCell(Position position) {
-        return cells[position.getRow()][position.getColumn()];
+    public Cell getCell(Cell cell) {
+        return cells[cell.getRow()][cell.getColumn()];
     }
 
     public Cell getCell(int row, int column) {
@@ -64,8 +50,8 @@ public class GameMap {
         return row >= 0 && row < ROW_NUMBER && column >= 0 && column < COLUMN_NUMBER;
     }
 
-    public boolean isInMap(Position position) {
-        return position.getRow() >= 0 && position.getRow() < ROW_NUMBER && position.getColumn() >= 0 && position.getColumn() < COLUMN_NUMBER;
+    public boolean isInMap(Cell cell) {
+        return cell.getRow() >= 0 && cell.getRow() < ROW_NUMBER && cell.getColumn() >= 0 && cell.getColumn() < COLUMN_NUMBER;
     }
 
 
@@ -91,9 +77,6 @@ public class GameMap {
         return getTroop(cell.getRow(), cell.getColumn());
     }
 
-    public Troop getTroop(Position cell) {
-        return getTroop(cell.getRow(), cell.getColumn());
-    }
 
     public Troop getTroop(String cardId) {
         for (Troop troop : troops) {
@@ -104,17 +87,8 @@ public class GameMap {
         return null;
     }
 
-    public void removeTroop(Player player, Troop troop) {
+    public void removeTroop(Troop troop) {
         troops.remove(troop);
-        throwFlags(player, troop);
-        player.removeFlagCarrier(troop);
-    }
-
-    private void throwFlags(Player player, Troop troop) {
-        for (Card flag : troop.getFlags()) {
-            troop.getCell().addItem(flag);
-            player.decreaseNumberOfCollectedFlags();
-        }
     }
 
     public List<Troop> getTroops() {

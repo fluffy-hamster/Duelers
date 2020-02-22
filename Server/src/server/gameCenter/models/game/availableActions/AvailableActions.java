@@ -2,12 +2,10 @@ package server.gameCenter.models.game.availableActions;
 
 import server.dataCenter.models.card.AttackType;
 import server.dataCenter.models.card.Card;
-import server.dataCenter.models.card.spell.Spell;
 import server.gameCenter.models.game.Game;
 import server.gameCenter.models.game.Player;
 import server.gameCenter.models.game.Troop;
 import server.gameCenter.models.map.Cell;
-import server.gameCenter.models.map.Position;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,15 +15,11 @@ public class AvailableActions {
     private List<Insert> handInserts = new ArrayList<>();
     private List<Insert> collectibleInserts = new ArrayList<>();
     private List<Attack> attacks = new ArrayList<>();
-    private List<Combo> combos = new ArrayList<>();
-    private SpecialPower specialPower;
     private List<Move> moves = new ArrayList<>();
 
     public void calculateAvailableActions(Game game) {
         calculateAvailableInsets(game);
         calculateAvailableAttacks(game);
-        calculateAvailableCombos(game);
-        calculateAvailableSpecialPower(game);
         calculateAvailableMoves(game);
     }
 
@@ -35,13 +29,9 @@ public class AvailableActions {
         handInserts.clear();
 
         for (Card card : ownPlayer.getHand()) {
-            if (ownPlayer.getCurrentMP() >= card.getMannaPoint()) {
+            if (ownPlayer.getCurrentMP() >= card.getManaCost()) {
                 handInserts.add(new Insert(card));
             }
-        }
-
-        for (Card item : ownPlayer.getCollectedItems()) {
-            collectibleInserts.add(new Insert(item));
         }
     }
 
@@ -67,64 +57,34 @@ public class AvailableActions {
             attacks.add(new Attack(myTroop, targets));
         }
     }
-
-    private void calculateAvailableCombos(Game game) {
-        Player ownPlayer = game.getCurrentTurnPlayer();
-        Player otherPlayer = game.getOtherTurnPlayer();
-        combos.clear();
-        for (Troop enemyTroop : otherPlayer.getTroops()) {
-            ArrayList<Troop> attackers = new ArrayList<>();
-            for (Troop myTroop : ownPlayer.getTroops()) {
-                if (!myTroop.getCard().hasCombo() || !myTroop.canAttack()) continue;
-
-                if (enemyTroop.canBeAttackedFromWeakerOnes() && myTroop.getCurrentAp() < enemyTroop.getCurrentAp())
-                    continue;
-
-                if (checkRangeForAttack(myTroop, enemyTroop)) continue;
-
-                attackers.add(myTroop);
-            }
-
-            if (attackers.size() == 0) continue;
-
-            combos.add(new Combo(attackers, enemyTroop));
-        }
-    }
-
-    private void calculateAvailableSpecialPower(Game game) {
-        Player ownPlayer = game.getCurrentTurnPlayer();
-        Troop hero = ownPlayer.getHero();
-
-        if (hero != null) {
-            if (hero.getCard().getSpells().isEmpty()) return;
-            Spell spell = hero.getCard().getSpells().get(0);
-
-            if (spell != null && !spell.isCoolDown(game.getTurnNumber()) && spell.getMannaPoint() <= ownPlayer.getCurrentMP()) {
-                specialPower = new SpecialPower(hero);
-            }
-        }
-    }
-
     public void calculateAvailableMoves(Game game) {
         Player ownPlayer = game.getCurrentTurnPlayer();
         moves.clear();
         for (Troop troop : ownPlayer.getTroops()) {
             if (!troop.canMove()) continue;
 
-            Position currentPosition = new Position(troop.getCell());
-            ArrayList<Position> targets = new ArrayList<>();
+            Cell currentCell = new Cell(troop.getCell().getRow(), troop.getCell().getColumn());
+            ArrayList<Cell> targets = new ArrayList<>();
 
-            for (int column = currentPosition.getColumn() - 2; column <= currentPosition.getColumn() + 2; column++) {
-                int rowDown = currentPosition.getRow() + (2 - Math.abs(column - currentPosition.getColumn()));
-                int rowUp = currentPosition.getRow() - (2 - Math.abs(column - currentPosition.getColumn()));
+            for (int column = currentCell.getColumn() - 2; column <= currentCell.getColumn() + 2; column++) {
+                int rowDown = currentCell.getRow() + (2 - Math.abs(column - currentCell.getColumn()));
+                int rowUp = currentCell.getRow() - (2 - Math.abs(column - currentCell.getColumn()));
 
                 for (int row = rowUp; row <= rowDown; row++) {
                     if (game.getGameMap().isInMap(row, column)) {
                         Cell cell = game.getGameMap().getCell(row, column);
-                        if (currentPosition.equals(cell)) continue;
+                        if (currentCell.equals(cell)) continue;
 
+                        // Check is an enemy unit is blocking the current path from current position to new position
+                        // Note that current implementation only works for movement range of 2.
+                        Cell midPoint = new Cell( (cell.getRow() + currentCell.getRow()) / 2, (cell.getColumn() + currentCell.getColumn()) / 2 );
+                        if (midPoint.getRow() != 0 || midPoint.getColumn() != 0) {
+                             if(game.getGameMap().getTroop(midPoint) != null && game.getGameMap().getTroop(midPoint).getPlayerNumber() != ownPlayer.getPlayerNumber()){
+                                continue;
+                            }
+                        }
                         if (game.getGameMap().getTroop(cell) == null) {
-                            targets.add(new Position(cell));
+                            targets.add(new Cell(cell.getRow(), cell.getColumn()));
                         }
                     }
                 }
@@ -157,14 +117,6 @@ public class AvailableActions {
 
     public List<Attack> getAttacks() {
         return Collections.unmodifiableList(attacks);
-    }
-
-    public List<Combo> getCombos() {
-        return Collections.unmodifiableList(combos);
-    }
-
-    public SpecialPower getSpecialPower() {
-        return specialPower;
     }
 
     public List<Move> getMoves() {

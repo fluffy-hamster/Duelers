@@ -15,15 +15,14 @@ public class CompressedCard {
     private CompressedSpell spell;//just for hero
     private int defaultAp;
     private int defaultHp;
-    private int mannaPoint;
+    private int manaCost;
     private AttackType attackType;
     private int range;
-    private boolean hasCombo;
     private int remainingNumber;
 
     public CompressedCard(String name, String description, String cardId, String spriteName, CardType type,
-                          List<Spell> spells, int defaultAp, int defaultHp, int mannaPoint,
-                          AttackType attackType, int range, boolean hasCombo, int remainingNumber) {
+                          List<Spell> spells, int defaultAp, int defaultHp, int manaCost,
+                          AttackType attackType, int range, int remainingNumber) {
         this.name = name;
         this.description = description;
         this.cardId = cardId;
@@ -31,18 +30,9 @@ public class CompressedCard {
         this.type = type;
         this.defaultAp = defaultAp;
         this.defaultHp = defaultHp;
-        this.mannaPoint = mannaPoint;
+        this.manaCost = manaCost;
         this.attackType = attackType;
         this.range = range;
-        this.hasCombo = hasCombo;
-        if (type == CardType.HERO) {
-            for (Spell spell : spells) {
-                if (spell.getAvailabilityType().isSpecialPower()) {
-                    this.spell = spell.toCompressedSpell();
-                    break;
-                }
-            }
-        }
         this.remainingNumber = remainingNumber;
     }
 }

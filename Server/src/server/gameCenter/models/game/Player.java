@@ -7,8 +7,9 @@ import server.dataCenter.models.card.Card;
 import server.dataCenter.models.card.CardType;
 import server.dataCenter.models.card.Deck;
 import server.exceptions.ClientException;
+import server.exceptions.LogicException;
 import server.gameCenter.models.map.Cell;
-import view.BattleView.Constants;
+import server.dataCenter.models.Constants;
 
 import java.util.*;
 
@@ -21,11 +22,9 @@ public class Player {
     private List<Troop> troops = new ArrayList<>();
     private List<Card> graveyard = new ArrayList<>();
     private Card nextCard;
-    private List<Card> collectedItems = new ArrayList<>();
-    private List<Troop> flagCarriers = new ArrayList<>();
     private int playerNumber;
-    private int numberOfCollectedFlags;
     private MatchHistory matchHistory;
+    private boolean canReplaceCard;
 
     Player(Deck mainDeck, String userName, int playerNumber) {
         this.playerNumber = playerNumber;
@@ -35,11 +34,12 @@ public class Player {
         for (int i = 0; i < 3; i++) {
             addNextCardToHand();
         }
+        this.canReplaceCard = true;
     }
 
     public CompressedPlayer toCompressedPlayer() {
         return new CompressedPlayer(
-                userName, currentMP, hand, graveyard, nextCard,deck.getItem().toCompressedCard(), collectedItems, playerNumber, numberOfCollectedFlags);
+                userName, currentMP, hand, graveyard, nextCard, playerNumber);
     }
 
     public List<Card> getHand() {
@@ -57,27 +57,37 @@ public class Player {
             }
         }
 
-        if (card == null) {
-            iterator = collectedItems.iterator();
-            while (iterator.hasNext()) {
-                Card card1 = (Card) iterator.next();
-                if (card1.getCardId().equalsIgnoreCase(cardId)) {
-                    card = card1;
-                    break;
-                }
-            }
-        }
-
         if (card == null)
             throw new ClientException("card id is not valid");
 
-        if (card.getMannaPoint() > currentMP)
-            throw new ClientException("not enough manna point");
+        if (card.getManaCost() > currentMP)
+            throw new ClientException("not enough mana");
 
         iterator.remove();
-        currentMP -= card.getMannaPoint();
+        currentMP -= card.getManaCost();
 
         return card;
+    }
+
+    public Card removeCardFromHand(String cardID) throws ClientException {
+        Card cardToRemove = null;
+
+        for (int i = 0; i < hand.size(); i++) {
+            Card tempCard = hand.get(i);
+            if (tempCard.getCardId().equalsIgnoreCase(cardID)) {
+                hand.remove(i);
+                cardToRemove = tempCard;
+            }
+        }
+
+        if (cardToRemove == null) {
+            throw new ClientException("cardID sent from client to remove from player's hand not found on server");
+        }
+        return cardToRemove;
+    }
+
+    public void addCardToDeck(Card card) throws LogicException {
+        deck.addCard(card);
     }
 
     private void setNextCard() {
@@ -87,13 +97,18 @@ public class Player {
             try {
                 deck.removeCard(nextCard);
             } catch (ClientException ignored) {
+                System.out.println("Unable to remove card from deck");
             }
         }
 
     }
 
+    public void setNewNextCard() {
+        setNextCard();
+    }
+
     boolean addNextCardToHand() {
-        if (hand.size() < Constants.MAXIMUM_CARD_HAND_SIZE) {
+        if (hand.size() < Constants.MAXIMUM_CARD_HAND_SIZE && !deck.getOthers().isEmpty()) {
             hand.add(nextCard);
             setNextCard();
             return true;
@@ -113,24 +128,15 @@ public class Player {
         this.currentMP = currentMP;
     }
 
-    void increaseMP(int currentMP){
-        this.currentMP+= currentMP;
-    }
-
-    void addFlagCarrier(Troop troop) {
-        if (!this.flagCarriers.contains(troop))
-            this.flagCarriers.add(troop);
-    }
-
-    public void removeFlagCarrier(Troop troop) {
-        flagCarriers.remove(troop);
+    void increaseMP(int currentMP) {
+        this.currentMP += currentMP;
     }
 
     void changeCurrentMP(int change) {
         currentMP += change;
     }
 
-    int getPlayerNumber() {
+    public int getPlayerNumber() {
         return playerNumber;
     }
 
@@ -148,14 +154,6 @@ public class Player {
 
     Card getNextCard() {
         return this.nextCard;
-    }
-
-    public List<Card> getCollectedItems() {
-        return Collections.unmodifiableList(collectedItems);
-    }
-
-    void collectItem(Card card) {
-        collectedItems.add(card);
     }
 
     Troop getTroop(Cell cell) {
@@ -203,18 +201,6 @@ public class Player {
         }
     }
 
-    public int getNumberOfCollectedFlags() {
-        return numberOfCollectedFlags;
-    }
-
-    void increaseNumberOfCollectedFlags() {
-        this.numberOfCollectedFlags++;
-    }
-
-    public void decreaseNumberOfCollectedFlags() {
-        this.numberOfCollectedFlags--;
-    }
-
     public MatchHistory getMatchHistory() {
         return matchHistory;
     }
@@ -225,5 +211,13 @@ public class Player {
 
     void addTroop(Troop troop) {
         troops.add(troop);
+    }
+
+    public boolean getCanReplaceCard() {
+        return this.canReplaceCard;
+    }
+
+    public void setCanReplaceCard(boolean state) {
+        this.canReplaceCard = state;
     }
 }

@@ -6,8 +6,9 @@ import models.JsonConverter;
 import models.account.AccountType;
 import models.card.Card;
 import models.card.ExportedDeck;
+import models.comperessedData.CompressedCard;
 import models.game.GameType;
-import models.game.map.Position;
+import models.game.map.Cell;
 
 public class Message {
     private MessageType messageType;
@@ -19,7 +20,6 @@ public class Message {
     private GameCopyMessage gameCopyMessage;
     private CardsCopyMessage cardsCopyMessage;
     private AccountCopyMessage accountCopyMessage;
-    private LeaderBoardCopyMessage leaderBoardCopyMessage;
     private StoriesCopyMessage storiesCopyMessage;
     private CardPositionMessage cardPositionMessage;
     private TroopUpdateMessage troopUpdateMessage;
@@ -38,6 +38,8 @@ public class Message {
     private OnlineGame onlineGame;
     //SENDER:DUAL
     private Card card;
+    private String cardID;
+    private CompressedCard compressedCard;
     private ChatMessage chatMessage;
     private NewGameFields newGameFields;
     private ChangeCardNumber changeCardNumber;
@@ -151,20 +153,20 @@ public class Message {
         return message;
     }
 
-    public static Message makeMoveTroopMessage(String receiver, String cardId, Position position) {
+    public static Message makeMoveTroopMessage(String receiver, String cardId, Cell cell) {
         Message message = new Message(receiver);
         message.otherFields = new OtherFields();
         message.otherFields.setMyCardId(cardId);
-        message.otherFields.setPosition(position);
+        message.otherFields.setCell(cell);
         message.messageType = MessageType.MOVE_TROOP;
         return message;
     }
 
-    public static Message makeInsertMessage(String receiver, String cardId, Position position) {
+    public static Message makeInsertMessage(String receiver, String cardId, Cell cell) {
         Message message = new Message(receiver);
         message.otherFields = new OtherFields();
         message.otherFields.setMyCardId(cardId);
-        message.otherFields.setPosition(position);
+        message.otherFields.setCell(cell);
         message.messageType = MessageType.INSERT;
         return message;
     }
@@ -178,35 +180,16 @@ public class Message {
         return message;
     }
 
-    public static Message makeComboAttackMessage(String receiver, String opponentCardId, String[] myCardIds) {
-        Message message = new Message(receiver);
-        message.otherFields = new OtherFields();
-        message.otherFields.setOpponentCardId(opponentCardId);
-        message.otherFields.setMyCardIds(myCardIds);
-        message.messageType = MessageType.COMBO;
-        return message;
-    }
-
     public static Message makeForceFinishGameMessage(String receiver) {
         Message message = new Message(receiver);
         message.messageType = MessageType.FORCE_FINISH;
         return message;
     }
 
-    public static Message makeUseSpecialPowerMessage(String receiver, String cardId, Position position) {
-        Message message = new Message(receiver);
-        message.otherFields = new OtherFields();
-        message.otherFields.setMyCardId(cardId);
-        message.otherFields.setPosition(position);
-        message.messageType = MessageType.USE_SPECIAL_POWER;
-        return message;
-    }
-
-    public static Message makeMultiPlayerGameReQuestMessage(String receiver, GameType gameType, int numberOfFlags, String opponentUsername) {
+    public static Message makeMultiPlayerGameReQuestMessage(String receiver, GameType gameType, String opponentUsername) {
         Message message = new Message(receiver);
         message.newGameFields = new NewGameFields();
         message.newGameFields.setOpponentUsername(opponentUsername);
-        message.newGameFields.setNumberOfFlags(numberOfFlags);
         message.newGameFields.setGameType(gameType);
         message.messageType = MessageType.MULTIPLAYER_GAME_REQUEST;
         return message;
@@ -234,21 +217,12 @@ public class Message {
         return message;
     }
 
-    public static Message makeNewCustomGameMessage(String receiver, GameType gameType, int numberOfFlags, String customDeckName) {
+    public static Message makeNewCustomGameMessage(String receiver, GameType gameType, String customDeckName) {
         Message message = new Message(receiver);
         message.newGameFields = new NewGameFields();
         message.newGameFields.setCustomDeckName(customDeckName);
-        message.newGameFields.setNumberOfFlags(numberOfFlags);
         message.newGameFields.setGameType(gameType);
         message.messageType = MessageType.NEW_DECK_GAME;
-        return message;
-    }
-
-    public static Message makeNewStoryGameMessage(String receiver, int stage) {
-        Message message = new Message(receiver);
-        message.newGameFields = new NewGameFields();
-        message.newGameFields.setStage(stage);
-        message.messageType = MessageType.NEW_STORY_GAME;
         return message;
     }
 
@@ -260,12 +234,6 @@ public class Message {
         return message;
     }
 
-    public static Message makeCustomCardMessage(String receiver, Card customCard) {
-        Message message = new Message(receiver);
-        message.card = customCard;
-        message.messageType = MessageType.ADD_CARD;
-        return message;
-    }
 
     public static Message makeChatMessage(String receiver, String messageSender, String messageReceiver, String textMessage) {
         Message message = new Message(receiver);
@@ -296,20 +264,6 @@ public class Message {
         return message;
     }
 
-    public static Message makeValidateCustomCardMessage(String receiver, String customCardName) {
-        Message message = new Message(receiver);
-        message.cardName = customCardName;
-        message.messageType = MessageType.ACCEPT_CARD;
-        return message;
-    }
-
-    public static Message makeInValidateCustomCardMessage(String receiver, String customCardName) {
-        Message message = new Message(receiver);
-        message.cardName = customCardName;
-        message.messageType = MessageType.REJECT_CARD;
-        return message;
-    }
-
     public static Message makeRequestOnlineGameShowMessage(String receiver, OnlineGame onlineGame) {
         Message message = new Message(receiver);
         message.onlineGame = onlineGame;
@@ -321,6 +275,19 @@ public class Message {
         Message message = new Message(receiver);
         message.onlineGame = onlineGame;
         message.messageType = MessageType.STOP_SHOW_GAME;
+        return message;
+    }
+
+    public static Message makeSetNewNextCardMessage(String receiver){
+        Message message = new Message(receiver);
+        message.messageType = MessageType.SET_NEW_NEXT_CARD;
+        return message;
+    }
+
+    public static Message makeNewReplaceCardMessage(String serverName, String cardID) {
+        Message message = new Message(serverName);
+        message.messageType = MessageType.REPLACE_CARD;
+        message.cardID = cardID;
         return message;
     }
 
@@ -350,10 +317,6 @@ public class Message {
 
     public AccountCopyMessage getAccountCopyMessage() {
         return accountCopyMessage;
-    }
-
-    public LeaderBoardCopyMessage getLeaderBoardCopyMessage() {
-        return leaderBoardCopyMessage;
     }
 
     public StoriesCopyMessage getStoriesCopyMessage() {
@@ -411,4 +374,10 @@ public class Message {
     public OnlineGame[] getOnlineGames() {
         return onlineGames;
     }
+
+    public CompressedCard getCompressedCard() {
+        return compressedCard;
+    }
+
+    public OtherFields getOtherFields() {return otherFields;}
 }

@@ -1,17 +1,12 @@
 package controller;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-
-import javafx.scene.ImageCursor;
 import javafx.scene.Scene;
-import javafx.scene.image.Image;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
 import models.gui.UIConstants;
+import models.gui.KeyboardShortcutConstants;
 import view.LoginMenu;
 
 public class GraphicalUserInterface {
@@ -61,11 +56,14 @@ public class GraphicalUserInterface {
     }
 
     private void setStageProperties(Stage stage) {
+        stage.setTitle("CardBoard");
+
         stage.setFullScreen(true);
-        stage.setFullScreenExitHint("");
-        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-        stage.setTitle("DUELYST");
-        stage.setResizable(false);
+        stage.setResizable(true); // note that resizing the window does not currently 'redraw' the window.
+
+        stage.setFullScreenExitHint(KeyboardShortcutConstants.EXIT_FULLSCREEN_HELP_MSG);
+        stage.setFullScreenExitKeyCombination(KeyboardShortcutConstants.EXIT_FULLSCREEN);
+
         stage.show();
         stage.setOnCloseRequest(event -> Client.getInstance().close());
     }

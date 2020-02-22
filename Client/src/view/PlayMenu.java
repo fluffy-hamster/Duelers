@@ -21,12 +21,12 @@ public class PlayMenu extends Show {
     );
     private static final String BACKGROUND_URL = "Client/resources/menu/background/play_background.jpg";
     private static final EventHandler<? super MouseEvent> BACK_EVENT = event -> new MainMenu().show();
-    private static Media backgroundMusic = new Media(
+    private static final Media backgroundMusic = new Media(
             new File("Client/resources/music/play_menu.m4a").toURI().toString()
     );
     private static final PlayButtonItem[] items = {
             new PlayButtonItem("Client/resources/menu/playButtons/single_player.jpg", "SINGLE PLAYER",
-                    "Story game and custom game, play with AI", event -> SinglePlayerMenu.getInstance().show()),
+                    "Custom game, play with AI", event -> SinglePlayerMenu.getInstance().show()),
             new PlayButtonItem("Client/resources/menu/playButtons/friend_game.jpg", "PLAY WITH FRIENDS",
                     "Play with your friends and earn money", event -> FriendGameMenu.getInstance().show()),
             new PlayButtonItem("Client/resources/menu/playButtons/global_game.jpg", "GLOBAL GAME",

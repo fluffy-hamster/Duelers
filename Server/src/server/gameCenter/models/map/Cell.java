@@ -1,24 +1,14 @@
 package server.gameCenter.models.map;
 
-import server.clientPortal.models.comperessedData.CompressedCell;
-import server.dataCenter.models.card.Card;
-
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class Cell {
     private int row;
     private int column;
-    private List<Card> items = new ArrayList<>();
 
     public Cell(int row, int column) {
         this.row = row;
         this.column = column;
-    }
-
-    public CompressedCell toCompressedCell() {
-        return new CompressedCell(row, column, items);
     }
 
     @Override
@@ -26,6 +16,11 @@ public class Cell {
         if (obj.getClass() != this.getClass()) return false;
         Cell cell = (Cell) obj;
         return row == cell.row && column == cell.column;
+    }
+
+    @Override
+    public String toString() {
+        return "Cell: (" + this.getRow() + "," + this.getColumn() + ")";
     }
 
     public int getRow() {
@@ -36,29 +31,42 @@ public class Cell {
         return this.column;
     }
 
-
-    public List<Card> getItems() {
-        return Collections.unmodifiableList(items);
-    }
-
-    public void clearItems() {
-        items.clear();
-    }
-
-    void addItem(Card item) {
-        this.items.add(item);
-    }
-
     public boolean isNextTo(Cell cell) {
         return Math.abs(cell.row - row) < 2 && Math.abs(cell.column - column) < 2;
     }
 
-    public int manhattanDistance(Cell cell) {
-        return Math.abs(cell.row - row) + Math.abs(cell.column - column);
+
+    public ArrayList<Cell> getNeighbourCells(int numRows, int numCols) {
+        /**
+         * Gets the 3x3 Neigbours of a cell.
+         * Note that this function assumes a finite plane (i.e there are edges and corners)
+         * All indexes >= 0 and less than the number of Rows/Columns
+         * Also note that this function does not return the cell itself.
+         */
+
+        ArrayList<Cell> cells = new ArrayList<>();
+
+        short[] offsets = {-1, 0, 1};
+        for (short i : offsets) {
+            for (short j : offsets) {
+
+                int r2 = i + row;
+                int c2 = j + column;
+
+                // Check cells bounds, we want all index to be positive and less than the upper bound.
+                boolean checkRow = (r2 >= 0) ? r2 < numRows : false;
+                boolean checkCol = (c2 >= 0) ? c2 < numCols : false;
+                boolean checkIdentity = (r2 == row) ? c2 == column : false; // don't add the current cell itself
+
+                if (checkRow && checkCol && !checkIdentity) {
+                    cells.add(new Cell(row + i, column + j));
+                }
+            }
+        }
+        return cells;
     }
 
-    public int manhattanDistance(Position position) {
-        return Math.abs(position.getRow() - this.row) + Math.abs(position.getColumn() - this.column);
-
+    public int manhattanDistance(Cell otherCell) {
+        return Math.abs(otherCell.row - row) + Math.abs(otherCell.column - column);
     }
 }

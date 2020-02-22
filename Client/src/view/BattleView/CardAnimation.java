@@ -32,7 +32,8 @@ public class CardAnimation extends Transition {
     private ACTION action;
     private FramePosition[] currentFramePositions;
 
-    private double x, y;
+    private final double x;
+    private final double y;
 
     public CardAnimation(Group group, ICard card, double y, double x) {
         this.group = group;
@@ -43,8 +44,6 @@ public class CardAnimation extends Transition {
         Image image;
         switch (card.getType()) {
             case SPELL:
-            case USABLE_ITEM:
-            case COLLECTIBLE_ITEM:
                 image = cachedImages.computeIfAbsent(card.getSpriteName(), key -> ImageLoader.load("Client/resources/icons/" + card.getSpriteName() + ".png"));
                 playlist = cachedPlaylists.computeIfAbsent(card.getSpriteName(), key -> {
                     try {
@@ -170,8 +169,6 @@ public class CardAnimation extends Transition {
         Image image;
         switch (card.getType()) {
             case SPELL:
-            case USABLE_ITEM:
-            case COLLECTIBLE_ITEM:
                 image = cachedImages.computeIfAbsent(card.getSpriteName(), key -> ImageLoader.load("Client/resources/icons/" + card.getSpriteName() + ".png"));
                 playlist = cachedPlaylists.computeIfAbsent(card.getSpriteName(), key -> {
                     try {
@@ -225,7 +222,7 @@ public class CardAnimation extends Transition {
         int frameDuration;
         double extraX;
         double extraY;
-        private HashMap<String, ArrayList<FramePosition>> lists = new HashMap<>();
+        private final HashMap<String, ArrayList<FramePosition>> lists = new HashMap<>();
 
         public HashMap<String, ArrayList<FramePosition>> getLists() {
             return lists;

@@ -34,6 +34,7 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
     private static final Background DECKS_BACKGROUND = new Background(
             new BackgroundFill(Color.rgb(39, 35, 40), CornerRadii.EMPTY, Insets.EMPTY)
     );
+
     private static final Font TITLE_FONT = Font.font("DejaVu Sans Light", FontWeight.EXTRA_LIGHT, 45 * SCALE);
     private static final double COLLECTION_WIDTH = SCENE_WIDTH * 0.8;
     private static final double DECKS_WIDTH = SCENE_WIDTH * 0.2;
@@ -46,7 +47,7 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
         menu.searchBox.clear();
         new MainMenu().show();
     };
-    private static Media backgroundMusic = new Media(
+    private static final Media backgroundMusic = new Media(
             new File("Client/resources/music/collection_menu.m4a").toURI().toString()
     );
     private VBox collectionBox;
@@ -98,6 +99,7 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
 
             searchBox = new CollectionSearchBox();
             cardsBox = new VBox(DEFAULT_SPACING * 4);
+            cardsBox.setBackground(new Background(new BackgroundFill(Color.LIGHTSLATEGRAY, CornerRadii.EMPTY, Insets.EMPTY)));
             showCollectionCards();
 
             ScrollPane cardsScroll = new ScrollPane(cardsBox);
@@ -182,12 +184,8 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
         DefaultLabel spellsLabel = new DefaultLabel("SPELLS", TITLE_FONT, Color.WHITE);
         CollectionCardsGrid spellsGrid = new CollectionCardsGrid(showingCards.getSpells());
 
-        DefaultLabel itemsLabel = new DefaultLabel("ITEMS", TITLE_FONT, Color.WHITE);
-        CollectionCardsGrid itemsGrid = new CollectionCardsGrid(showingCards.getItems());
-
         cardsBox.getChildren().addAll(
-                heroesLabel, heroesGrid, minionsLabel, minionsGrid, spellsLabel, spellsGrid, itemsLabel, itemsGrid
-        );
+                heroesLabel, heroesGrid, minionsLabel, minionsGrid, spellsLabel, spellsGrid);
         cardsBox.setMinSize(COLLECTION_WIDTH * 0.95, SCROLL_HEIGHT * 0.95);
         cardsBox.setAlignment(Pos.TOP_CENTER);
     }
@@ -231,7 +229,6 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
                     cardsBox.getChildren().set(1, new CollectionCardsGrid(showingCards.getHeroes()));
                     cardsBox.getChildren().set(3, new CollectionCardsGrid(showingCards.getMinions()));
                     cardsBox.getChildren().set(5, new CollectionCardsGrid(showingCards.getSpells()));
-                    cardsBox.getChildren().set(7, new CollectionCardsGrid(showingCards.getItems()));
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -267,10 +264,8 @@ public class CollectionMenu extends Show implements PropertyChangeListener {
             DefaultLabel spellsLabel = new DefaultLabel("SPELLS", TITLE_FONT, Color.WHITE);
             DeckCardsGrid spellsGrid = new DeckCardsGrid(showingCards.getSpells(), deck);
 
-            DefaultLabel itemsLabel = new DefaultLabel("ITEMS", TITLE_FONT, Color.WHITE);
-            DeckCardsGrid itemsGrid = new DeckCardsGrid(showingCards.getItems(), deck);
             cardsBox.getChildren().addAll(
-                    heroesLabel, heroesGrid, minionsLabel, minionsGrid, spellsLabel, spellsGrid, itemsLabel, itemsGrid
+                    heroesLabel, heroesGrid, minionsLabel, minionsGrid, spellsLabel, spellsGrid
             );
         } catch (FileNotFoundException e) {
             e.printStackTrace();

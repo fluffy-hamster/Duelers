@@ -34,25 +34,24 @@ public class HandBox implements PropertyChangeListener {
     private final Pane[] cards = new Pane[Constants.MAXIMUM_CARD_HAND_SIZE];
     private final Pane next = new Pane();
     private int selectedCard = -1;
-    private int selectedItem = -1;
     private CardPane cardPane = null;
-    private Image cardBack = new Image(new FileInputStream("Client/resources/ui/card_background@2x.png"));
-    private Image cardBackGlow = new Image(new FileInputStream("Client/resources/ui/card_background_highlight@2x.png"));
-    private Image nextBack = new Image(new FileInputStream("Client/resources/ui/replace_background@2x.png"));
-    private Image nextRingSmoke = new Image(new FileInputStream("Client/resources/ui/replace_outer_ring_smoke@2x.png"));
-    private Image nextRingShine = new Image(new FileInputStream("Client/resources/ui/replace_outer_ring_shine@2x.png"));
-    private Image endTurnImage = new Image(new FileInputStream("Client/resources/ui/button_end_turn_finished@2x.png"));
-    private Image endTurnImageGlow = new Image(new FileInputStream("Client/resources/ui/button_end_turn_finished_glow@2x.png"));
+    private final Image cardBack = new Image(new FileInputStream("Client/resources/ui/card_background@2x.png"));
+    private final Image cardBackGlow = new Image(new FileInputStream("Client/resources/ui/card_background_highlight@2x.png"));
+    private final Image nextBack = new Image(new FileInputStream("Client/resources/ui/replace_background@2x.png"));
+    private final Image nextRingSmoke = new Image(new FileInputStream("Client/resources/ui/replace_outer_ring_smoke@2x.png"));
+    private final Image nextRingShine = new Image(new FileInputStream("Client/resources/ui/replace_outer_ring_shine@2x.png"));
+    private final Image endTurnImage = new Image(new FileInputStream("Client/resources/ui/button_end_turn_finished@2x.png"));
+    private final Image endTurnImageGlow = new Image(new FileInputStream("Client/resources/ui/button_end_turn_finished_glow@2x.png"));
     private DefaultLabel endTurnLabel;
     private StackPane endTurnButton;
 
 
-    HandBox(BattleScene battleScene, CompressedPlayer player, double x, double y) throws Exception {
+    HandBox(BattleScene battleScene, CompressedPlayer player) throws Exception {
         this.battleScene = battleScene;
         this.player = player;
         handGroup = new Group();
-        handGroup.setLayoutX(x);
-        handGroup.setLayoutY(y);
+        handGroup.setLayoutX(Constants.HAND_X);
+        handGroup.setLayoutY(Constants.HAND_Y);
 
 
         if (player != null) {
@@ -94,8 +93,6 @@ public class HandBox implements PropertyChangeListener {
         imageView2.setFitWidth(Constants.SCREEN_WIDTH * 0.11);
         imageView2.setFitHeight(Constants.SCREEN_WIDTH * 0.11);
 
-        CardAnimation cardAnimation = null;
-
         imageView2.setImage(nextRingSmoke);
 
         next.setOnMouseEntered(mouseEvent -> {
@@ -104,9 +101,9 @@ public class HandBox implements PropertyChangeListener {
             }
         });
 
-        next.setOnMouseExited(mouseEvent -> {
-            imageView2.setImage(nextRingSmoke);
-        });
+        next.setOnMouseExited(mouseEvent -> imageView2.setImage(nextRingSmoke));
+
+        next.setOnMouseClicked(mouseEvent -> replaceSelectedCard());
     }
 
     private void updateCards() {
@@ -287,7 +284,6 @@ public class HandBox implements PropertyChangeListener {
         switch (evt.getPropertyName()) {
             case "next":
             case "hand":
-            case "items":
                 Platform.runLater(this::resetSelection);
                 break;
             case "turn":
@@ -313,7 +309,6 @@ public class HandBox implements PropertyChangeListener {
             battleScene.getMapBox().updateMapColors();
         } else {
             selectedCard = i;
-            selectedItem = -1;
             battleScene.getMapBox().resetSelection();
         }
         updateCards();
@@ -326,17 +321,22 @@ public class HandBox implements PropertyChangeListener {
     CompressedCard getSelectedCard() {
         if (selectedCard >= 0)
             return player.getHand().get(selectedCard);
-        if (selectedItem >= 0)
-            return player.getCollectedItems().get(selectedItem);
         return null;
     }
 
     void resetSelection() {
         if (player != null) {
             selectedCard = -1;
-            selectedItem = -1;
             updateCards();
             updateNext();
+        }
+    }
+
+    public void replaceSelectedCard(){
+        if(selectedCard != -1 ) {
+            String cardID = player.getHand().get(selectedCard).getCardId();
+            battleScene.getController().replaceCard(cardID);
+            clickOnCard(selectedCard);
         }
     }
 }
